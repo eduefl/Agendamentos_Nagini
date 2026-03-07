@@ -11,7 +11,7 @@ from usecases.user.find_user_by_id.find_user_by_id_dto import findUserByIdInputD
 from usecases.user.list_users.list_users_usecase import ListUsersUseCase
 from usecases.user.list_users.list_users_dto import ListUsersInputDTO
 from usecases.user.update_user.update_user_usecase import updateUserUsecase
-from usecases.user.update_user.update_user_dto import UpdateUserInputDTO
+from usecases.user.update_user.update_user_dto import UpdateUserDataDTO, UpdateUserInputDTO
 from infrastructure.presenters.user_presenter import UserPresenter
 
 router = APIRouter(prefix = "/users", tags=["Users"])
@@ -69,15 +69,32 @@ def list_users(session: Session = Depends(get_session)):
 # alterar o nome do usuario
 # http:://localhost:8000/users/{user_id}
 @router.put("/{user_id}",status_code=status.HTTP_200_OK)
-# def add_user(request: AddUserInputDTO, session: Session = Depends(get_session)):
-def update_user(request: UpdateUserInputDTO, session: Session = Depends(get_session)):
+# o UpdateUserDataDTO recebe apenas os campos que podem ser atualizados, 
+# enquanto o UpdateUserInputDTO inclui o campo id para identificar qual usuário atualizar. 
+# Assim, mantemos a separação entre os dados de entrada e a estrutura completa da entidade.
+def update_user(user_id: UUID, request: UpdateUserDataDTO, session: Session = Depends(get_session)):
 	try:
 		user_repository = userRepository(session = session)
 		usecase = updateUserUsecase(user_repository = user_repository)
-		output = usecase.execute(input_dto = request) 
+		input_dto = UpdateUserInputDTO(id=user_id, **request.dict()) # o **request.dict() 
+																		# é um truque para pegar 
+																		# os campos do UpdateUserDataDTO e passar como argumentos para o
+																		#  UpdateUserInputDTO, junto com o id que vem da URL.
+																		#  Assim, criamos um DTO completo para chamar o usecase. 
+																		# request.dict() retorna um dict (ex.: {"name": "Eduardo"}).
+																		# O ** faz o desempacotamento desse dict em argumentos nomeados.
+																		# Observação sobre versão do Pydantic
+																		# Pydantic v2: model_dump()
+																		# Pydantic v1: dict()
+		output = usecase.execute( input_dto = input_dto) # aqui criamos o input_dto completo para passar para o usecase, que precisa do id e dos campos atualizaveis.
 		output_json = UserPresenter.toJSON(output)
 		output_xml = UserPresenter.toXml(output)
 		return {"json": output_json, "xml": output_xml}
+	except UserNotFoundError as e:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=str(e),  # "User with id ... not found"
+		)	
 	except HTTPException as e:
 		raise e
 

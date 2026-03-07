@@ -34,9 +34,19 @@ class userRepository(userRepositoryInterface):
 		return users
 
 
-	def update_user(self, user: User)->None:
-		self.session.query(UserModel).filter(UserModel.id == user.id).update({"name": user.name})
-		self.session.commit()
+	def update_user(self, user: User) -> None:
+		# self.session.query(UserModel).filter(UserModel.id == user.id).update({"name": user.name})
+		# self.session.commit()
+		result = (
+				self.session.query(UserModel)
+			.filter(UserModel.id == user.id)
+			.update({"name": user.name})
+		)
 
+		if result == 0:
+			# nenhuma linha foi atualizada => id não existe
+			raise UserNotFoundError(user.id)
+
+		self.session.commit()
 		return None
-	
+
