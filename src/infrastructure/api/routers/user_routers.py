@@ -1,5 +1,6 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
+from domain.user.user_exceptions import UserNotFoundError
 from usecases.user.add_user.add_user_dto import AddUserInputDTO
 from sqlalchemy.orm import Session
 from infrastructure.api.database import get_session
@@ -28,7 +29,7 @@ def add_user(request: AddUserInputDTO, session: Session = Depends(get_session)):
 
 		return {"json": output_json, "xml": output_xml}
 	except HTTPException as e:
-		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+		raise e
 
 # Consultar usuarios por ID
 # http:://localhost:8000/users/{user_id}
@@ -42,8 +43,13 @@ def find_user_by_id(user_id :UUID, session: Session = Depends(get_session)):
 		output_xml = UserPresenter.toXml(output)
 
 		return {"json": output_json, "xml": output_xml}
+	except UserNotFoundError as e:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=str(e),  # "User with id ... not found"
+		)	
 	except HTTPException as e:
-		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+		raise e
 
 # Listar todos os usuarios
 # http:://localhost:8000/users
@@ -58,7 +64,7 @@ def list_users(session: Session = Depends(get_session)):
 
 		return {"json": output_json, "xml": output_xml}
 	except HTTPException as e:
-		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))		
+		raise e
 	
 # alterar o nome do usuario
 # http:://localhost:8000/users/{user_id}
@@ -73,7 +79,7 @@ def update_user(request: UpdateUserInputDTO, session: Session = Depends(get_sess
 		output_xml = UserPresenter.toXml(output)
 		return {"json": output_json, "xml": output_xml}
 	except HTTPException as e:
-		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+		raise e
 
 """
 # Fazer o processo de inclusao de tarefas
