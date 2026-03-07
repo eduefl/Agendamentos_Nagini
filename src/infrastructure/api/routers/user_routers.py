@@ -75,4 +75,19 @@ def update_user(request: UpdateUserInputDTO, session: Session = Depends(get_sess
 	except HTTPException as e:
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
-# Continuar aula clear architeture 2 --02:45:02
+"""
+# Fazer o processo de inclusao de tarefas
+Criar Entidade
+	Init
+	Validate
+Criar interface repositorio 
+	entidade_repository_interface
+
+Criar caso de uso e os DTOs
+
+Implementar o repositorio usando SQLAlchemy e os modelos em infra estrutura
+
+criar rotas na api
+
+criar os presenters 
+"""
