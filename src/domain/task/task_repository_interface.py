@@ -13,6 +13,7 @@ class taskRepositoryInterface(ABC):
 	def create_task(self, task : Task) ->None:
 		raise NotImplementedError
 
+	@abstractmethod
 	def get_task_by_id(self, task_id: UUID) -> Task:
 		raise NotImplementedError
 

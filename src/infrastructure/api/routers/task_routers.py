@@ -1,5 +1,8 @@
-from infrastructure.presenters.task_presenter import TaskPresenter
+from uuid import UUID
+from domain.task.task_exceptions import TaskNotFoundError
 from domain.user.user_exceptions import UserNotFoundError
+
+from infrastructure.presenters.task_presenter import TaskPresenter
 from usecases.task.create_task_usecase import CreateTaskUseCase
 from infrastructure.task.sqlalchemy.task_repository import taskRepository
 from infrastructure.user.sqlalchemy.user_repository import userRepository
@@ -7,6 +10,8 @@ from usecases.task.create_task_dto import CreateTaskInputDTO
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from infrastructure.api.database import get_session
+from usecases.task.get_task_by_id_usecase import GetTaskByIdUseCase
+from usecases.task.get_task_by_id_dto import getTaskByIdInputDTO
 
 
 router = APIRouter(prefix = "/tasks", tags=["Tasks"])
@@ -28,6 +33,26 @@ def create_task(request: CreateTaskInputDTO, session: Session = Depends(get_sess
 			"xml": output_xml
 		}	
 	except UserNotFoundError as e:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=str(e),  # "User with id ... not found"
+		)	
+	except HTTPException as e:
+		raise e
+
+# Consultar tarefas por ID
+# http:://localhost:8000/tasks/{task_id}
+@router.get("/{task_id}",status_code=status.HTTP_200_OK)
+def find_task_by_id(task_id :UUID, session: Session = Depends(get_session)):
+	try:
+		task_repository = taskRepository(session = session)
+		usecase = GetTaskByIdUseCase(task_repository = task_repository)
+		output =  usecase.execute(input = getTaskByIdInputDTO(id=task_id))
+		output_json = TaskPresenter.toJSON(output)
+		output_xml = TaskPresenter.toXml(output)
+
+		return {"json": output_json, "xml": output_xml}
+	except TaskNotFoundError as e:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail=str(e),  # "User with id ... not found"
