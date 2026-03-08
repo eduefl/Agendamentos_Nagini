@@ -1,4 +1,6 @@
 from uuid import UUID
+from usecases.task.update_task_usecase import UpdateTaskUseCase
+from usecases.task.update_task_dto import UpdateTaskDataDTO, UpdateTaskInputDTO
 from domain.task.task_exceptions import TaskNotFoundError
 from domain.user.user_exceptions import UserNotFoundError
 
@@ -57,5 +59,31 @@ def find_task_by_id(task_id :UUID, session: Session = Depends(get_session)):
 			status_code=status.HTTP_404_NOT_FOUND,
 			detail=str(e),  # "User with id ... not found"
 		)	
+	except HTTPException as e:
+		raise e
+	
+# Alterar Dados tarefa
+# http:://localhost:8000/tasks/{task_id}
+@router.put("/{task_id}", status_code=status.HTTP_200_OK)
+def update_task(task_id: UUID, request: UpdateTaskDataDTO, session: Session = Depends(get_session)):
+	try:
+		task_repository	= taskRepository(session = session)
+		user_repository = userRepository(session = session)				
+		usecase = UpdateTaskUseCase(task_repository = task_repository, user_repository = user_repository)
+		input_dto = UpdateTaskInputDTO(id = task_id, **request.dict())
+		output = usecase.execute(input_dto = input_dto)	
+		output_json = TaskPresenter.toJSON(output)
+		output_xml = TaskPresenter.toXml(output)
+		return {"json": output_json, "xml": output_xml}
+	except TaskNotFoundError as e:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=str(e),  # "Task with id ... not found"
+		)
+	except UserNotFoundError as e:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=str(e),  # "User with id ... not found"
+		)
 	except HTTPException as e:
 		raise e

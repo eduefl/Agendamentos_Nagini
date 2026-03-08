@@ -34,7 +34,23 @@ class taskRepository(taskRepositoryInterface):
 		return task
 
 	def update_task(self, task: Task) -> None:
-		pass
+		result = (
+			self.session.query(TaskModel)
+			.filter(TaskModel.id == task.id)
+			.update({
+				"user_id": task.user_id,
+				"title": task.title,
+				"description": task.description,
+				"completed": task.completed
+			})
+		)	
+
+		if result == 0:
+			raise TaskNotFoundError(task.id)
+		
+		self.session.commit()
+
+		return None
 
 	def delete_task(self, task_id: UUID) -> str:
 		pass
