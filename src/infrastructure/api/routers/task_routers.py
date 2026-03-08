@@ -1,3 +1,4 @@
+from infrastructure.presenters.task_presenter import TaskPresenter
 from domain.user.user_exceptions import UserNotFoundError
 from usecases.task.create_task_usecase import CreateTaskUseCase
 from infrastructure.task.sqlalchemy.task_repository import taskRepository
@@ -20,9 +21,12 @@ def create_task(request: CreateTaskInputDTO, session: Session = Depends(get_sess
 		user_repository = userRepository(session = session)		
 		usecase = CreateTaskUseCase(task_repository = task_repository, user_repository = user_repository)
 		output =  usecase.execute(input = request) 
-		# output_json = TaskPresenter.toJSON(output)
-		# output_xml = TaskPresenter.toXml(output)
-		return output
+		output_json = TaskPresenter.toJSON(output)
+		output_xml = TaskPresenter.toXml(output)
+		return {
+			"json": output_json,
+			"xml": output_xml
+		}	
 	except UserNotFoundError as e:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
