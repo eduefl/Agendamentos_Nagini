@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr
 
 
 
-class CreateTaskIpnutDTO(BaseModel):
+class CreateTaskInputDTO(BaseModel):
 	title: str
 	description: str
 	user_id: UUID
