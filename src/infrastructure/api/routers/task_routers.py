@@ -1,4 +1,6 @@
 from uuid import UUID
+from usecases.task.delete_task_dto import DeleteTaskInputDTO
+from usecases.task.delete_task_usecase import DeleteTaskUseCase
 from usecases.task.update_task_usecase import UpdateTaskUseCase
 from usecases.task.update_task_dto import UpdateTaskDataDTO, UpdateTaskInputDTO
 from domain.task.task_exceptions import TaskNotFoundError
@@ -87,3 +89,22 @@ def update_task(task_id: UUID, request: UpdateTaskDataDTO, session: Session = De
 		)
 	except HTTPException as e:
 		raise e
+# Deletar tarefa
+# http:://localhost:8000/tasks/{task_id}
+@router.delete("/{task_id}", status_code=status.HTTP_200_OK)
+def delete_task(task_id: UUID, session: Session = Depends(get_session)):
+	try:
+		task_repository = taskRepository(session = session)
+		usecase = DeleteTaskUseCase(task_repository = task_repository)	
+		input_dto = DeleteTaskInputDTO (id = task_id)
+		output = usecase.execute(input = input_dto)	
+		output_json = TaskPresenter.toJSON(output)
+		output_xml = TaskPresenter.toXml(output)
+		return {"json": output_json, "xml": output_xml}
+	except TaskNotFoundError as e:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=str(e),  # "Task with id ... not found"
+		)
+	except HTTPException as e:
+		raise e	

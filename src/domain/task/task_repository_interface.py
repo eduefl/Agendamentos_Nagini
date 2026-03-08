@@ -21,7 +21,8 @@ class taskRepositoryInterface(ABC):
 	def update_task(self, task: Task) -> None:
 		raise NotImplementedError
 
-	def delete_task(self, task_id: UUID) -> str:
+	@abstractmethod
+	def delete_task(self, task_id: UUID) -> None:
 		raise NotImplementedError
 	
 	def list_tasks_from_user(self, user_id: UUID) -> list[Task]:

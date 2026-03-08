@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 from functools import singledispatchmethod
 
+from usecases.task.delete_task_dto import DeleteTaskOutputDTO
 from usecases.task.update_task_dto import UpdateTaskOutputDTO
 from usecases.task.get_task_by_id_dto import getTaskByIdOutputDTO
 from usecases.task.create_task_dto import createTaskOutputDTO
@@ -46,6 +47,13 @@ class TaskPresenter :
 		}
 	
 	
+	@toJSON.register
+	@staticmethod
+	def _(task_dto: DeleteTaskOutputDTO) -> dict:
+		return {
+			"message": str(task_dto.message),
+		}
+	
 
 
 	# XML
@@ -89,3 +97,13 @@ class TaskPresenter :
 		ET.SubElement(task_data, "completed").text = str(task_dto.completed)
 		return ET.tostring(task_data, encoding='unicode')
 	
+
+	@toXml.register
+	@staticmethod
+	def _(task_dto: DeleteTaskOutputDTO) -> str:
+		task_data = ET.Element("task")
+		ET.SubElement(task_data, "message").text = str(task_dto.message)
+		return ET.tostring(task_data, encoding='unicode')
+	
+		
+
