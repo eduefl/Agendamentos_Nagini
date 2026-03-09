@@ -1,4 +1,6 @@
 from uuid import UUID
+from usecases.task.list_tasks_from_user.list_tasks_from_user_dto import ListTasksFromUserInputDTO
+from usecases.task.list_tasks_from_user.list_tasks_from_user_usecase import ListTasksFromUserUseCase
 from usecases.task.delete_task.delete_task_dto import DeleteTaskInputDTO
 from usecases.task.delete_task.delete_task_usecase import DeleteTaskUseCase
 from usecases.task.update_task.update_task_usecase import UpdateTaskUseCase
@@ -43,6 +45,29 @@ def create_task(request: CreateTaskInputDTO, session: Session = Depends(get_sess
 		)	
 	except HTTPException as e:
 		raise e
+	
+# Listar tarefas de um usuario
+# http:://localhost:8000/tasks/user/{user_id}
+@router.get("/user/{user_id}", status_code=status.HTTP_200_OK)
+def list_tasks_from_user(user_id: UUID, session: Session = Depends(get_session)):
+	try:
+		task_repository = taskRepository(session = session)
+		user_repository = userRepository(session = session)
+		usecase = ListTasksFromUserUseCase(task_repository = task_repository , 
+									 user_repository = user_repository)	
+		input_dto = ListTasksFromUserInputDTO (user_id = user_id)
+		output = usecase.execute(input_dto = input_dto)	
+		output_json = TaskPresenter.toJSON(output)
+		output_xml = TaskPresenter.toXml(output)
+		return {"json": output_json, "xml": output_xml}
+	except UserNotFoundError as e:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=str(e),  # "User with id ... not found"
+		)
+	except HTTPException as e:
+		raise e
+
 
 # Consultar tarefas por ID
 # http:://localhost:8000/tasks/{task_id}
@@ -108,3 +133,4 @@ def delete_task(task_id: UUID, session: Session = Depends(get_session)):
 		)
 	except HTTPException as e:
 		raise e	
+

@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 from functools import singledispatchmethod
 
+from usecases.task.list_tasks_from_user.list_tasks_from_user_dto import ListTasksFromUserOutputDTO
 from usecases.task.delete_task.delete_task_dto import DeleteTaskOutputDTO
 from usecases.task.update_task.update_task_dto import UpdateTaskOutputDTO
 from usecases.task.get_task_by_id.get_task_by_id_dto import getTaskByIdOutputDTO
@@ -54,6 +55,18 @@ class TaskPresenter :
 			"message": str(task_dto.message),
 		}
 	
+	@toJSON.register
+	@staticmethod
+	def _(task_dto: ListTasksFromUserOutputDTO) -> dict:
+	
+		return {"tasks": 
+		  			[{"id": str(task.id),
+					"title": task.title,
+					"description": task.description,
+					"user_id": str(task.user_id),
+					"completed": task.completed} 
+				for task in task_dto.tasks]
+				}
 
 
 	# XML
@@ -107,3 +120,17 @@ class TaskPresenter :
 	
 		
 
+	@toXml.register
+	@staticmethod
+	def _(task_dto: ListTasksFromUserOutputDTO) -> str:
+		tasks_data = ET.Element("tasks")
+		for task in task_dto.tasks:
+			task_element = ET.SubElement(tasks_data, "task")
+			ET.SubElement(task_element, "id").text = str(task.id)
+			ET.SubElement(task_element, "title").text = task.title
+			ET.SubElement(task_element, "description").text = task.description
+			ET.SubElement(task_element, "user_id").text = str(task.user_id)
+			ET.SubElement(task_element, "completed").text = str(task.completed)
+		return ET.tostring(tasks_data, encoding='unicode')
+	
+		
