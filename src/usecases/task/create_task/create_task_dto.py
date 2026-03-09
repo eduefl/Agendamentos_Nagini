@@ -4,13 +4,13 @@ from pydantic import BaseModel, EmailStr
 
 
 class CreateTaskInputDTO(BaseModel):
+	user_id: UUID
 	title: str
 	description: str
-	user_id: UUID
 
 class createTaskOutputDTO(BaseModel):
 	id: UUID
+	user_id: UUID
 	title: str
 	description: str
-	user_id: UUID
 	completed: bool

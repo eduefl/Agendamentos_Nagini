@@ -1,6 +1,6 @@
 from domain.task.task_repository_interface import taskRepositoryInterface
 from domain.__seedwork.use_case_interface import UseCaseInterface
-from usecases.task.delete_task_dto import DeleteTaskInputDTO, DeleteTaskOutputDTO
+from usecases.task.delete_task.delete_task_dto import DeleteTaskInputDTO, DeleteTaskOutputDTO
 
 
 class DeleteTaskUseCase(UseCaseInterface):

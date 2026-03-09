@@ -1,10 +1,10 @@
 import xml.etree.ElementTree as ET
 from functools import singledispatchmethod
 
-from usecases.task.delete_task_dto import DeleteTaskOutputDTO
-from usecases.task.update_task_dto import UpdateTaskOutputDTO
-from usecases.task.get_task_by_id_dto import getTaskByIdOutputDTO
-from usecases.task.create_task_dto import createTaskOutputDTO
+from usecases.task.delete_task.delete_task_dto import DeleteTaskOutputDTO
+from usecases.task.update_task.update_task_dto import UpdateTaskOutputDTO
+from usecases.task.get_task_by_id.get_task_by_id_dto import getTaskByIdOutputDTO
+from usecases.task.create_task.create_task_dto import createTaskOutputDTO
 
 class TaskPresenter :
 	@singledispatchmethod

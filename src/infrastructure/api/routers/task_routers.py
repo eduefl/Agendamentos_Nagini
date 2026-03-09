@@ -1,21 +1,21 @@
 from uuid import UUID
-from usecases.task.delete_task_dto import DeleteTaskInputDTO
-from usecases.task.delete_task_usecase import DeleteTaskUseCase
-from usecases.task.update_task_usecase import UpdateTaskUseCase
-from usecases.task.update_task_dto import UpdateTaskDataDTO, UpdateTaskInputDTO
+from usecases.task.delete_task.delete_task_dto import DeleteTaskInputDTO
+from usecases.task.delete_task.delete_task_usecase import DeleteTaskUseCase
+from usecases.task.update_task.update_task_usecase import UpdateTaskUseCase
+from usecases.task.update_task.update_task_dto import UpdateTaskDataDTO, UpdateTaskInputDTO
 from domain.task.task_exceptions import TaskNotFoundError
 from domain.user.user_exceptions import UserNotFoundError
 
 from infrastructure.presenters.task_presenter import TaskPresenter
-from usecases.task.create_task_usecase import CreateTaskUseCase
+from usecases.task.create_task.create_task_usecase import CreateTaskUseCase
 from infrastructure.task.sqlalchemy.task_repository import taskRepository
 from infrastructure.user.sqlalchemy.user_repository import userRepository
-from usecases.task.create_task_dto import CreateTaskInputDTO
+from usecases.task.create_task.create_task_dto import CreateTaskInputDTO
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from infrastructure.api.database import get_session
-from usecases.task.get_task_by_id_usecase import GetTaskByIdUseCase
-from usecases.task.get_task_by_id_dto import getTaskByIdInputDTO
+from usecases.task.get_task_by_id.get_task_by_id_usecase import GetTaskByIdUseCase
+from usecases.task.get_task_by_id.get_task_by_id_dto import getTaskByIdInputDTO
 
 
 router = APIRouter(prefix = "/tasks", tags=["Tasks"])

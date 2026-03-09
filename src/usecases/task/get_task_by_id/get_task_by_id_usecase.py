@@ -1,4 +1,4 @@
-from usecases.task.get_task_by_id_dto import getTaskByIdInputDTO, getTaskByIdOutputDTO
+from usecases.task.get_task_by_id.get_task_by_id_dto import getTaskByIdInputDTO, getTaskByIdOutputDTO
 from domain.task.task_repository_interface import taskRepositoryInterface
 from domain.__seedwork.use_case_interface import UseCaseInterface
 

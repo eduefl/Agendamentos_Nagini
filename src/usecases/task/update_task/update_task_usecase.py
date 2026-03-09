@@ -1,4 +1,4 @@
-from usecases.task.update_task_dto import UpdateTaskInputDTO, UpdateTaskOutputDTO
+from usecases.task.update_task.update_task_dto import UpdateTaskInputDTO, UpdateTaskOutputDTO
 from domain.__seedwork.task_case_interface import TaskCaseInterface
 from domain.task.task_repository_interface import taskRepositoryInterface
 from domain.user.user_repository_interface import userRepositoryInterface

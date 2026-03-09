@@ -4,7 +4,7 @@
 from uuid import uuid4
 from domain.user.user_repository_interface import userRepositoryInterface
 from domain.task.task_entity import Task
-from usecases.task.create_task_dto import CreateTaskInputDTO, createTaskOutputDTO
+from usecases.task.create_task.create_task_dto import CreateTaskInputDTO, createTaskOutputDTO
 from domain.task.task_repository_interface import taskRepositoryInterface
 from domain.__seedwork.task_case_interface import TaskCaseInterface
 
