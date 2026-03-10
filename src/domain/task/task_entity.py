@@ -26,12 +26,18 @@ class Task:
 			raise ValueError("User ID must be a valid UUID.")
 		if not isinstance(self.title, str):
 			raise ValueError("Title must be a string.")
+		if len(self.title) == 0:
+			raise ValueError("Title is required")
 		if not isinstance(self.description, str):
 			raise ValueError("Description must be a string.")
+		if len(self.description) == 0:
+			raise ValueError("Description is required")
+		
 		if not self.title:
 			raise ValueError("Title cannot be empty.")
 		if not isinstance(self.completed, bool):
 			raise ValueError("Completed must be a boolean.")
+		return True
 		
 	def __str__(self) -> str:
 		return f"Task(id={self.id}, user_id={self.user_id}, title='{self.title}', completed={self.completed})"

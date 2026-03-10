@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from infrastructure.api.database import get_session
 from usecases.task.get_task_by_id.get_task_by_id_usecase import GetTaskByIdUseCase
 from usecases.task.get_task_by_id.get_task_by_id_dto import getTaskByIdInputDTO
-
+from infrastructure.api.routers._error_mapper import raise_http_from_error
 
 router = APIRouter(prefix = "/tasks", tags=["Tasks"])
 
@@ -38,13 +38,8 @@ def create_task(request: CreateTaskInputDTO, session: Session = Depends(get_sess
 			"json": output_json,
 			"xml": output_xml
 		}	
-	except UserNotFoundError as e:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=str(e),  # "User with id ... not found"
-		)	
-	except HTTPException as e:
-		raise e
+	except Exception as e:
+		raise_http_from_error(e)
 	
 # Listar tarefas de um usuario
 # http:://localhost:8000/tasks/user/{user_id}
@@ -60,13 +55,8 @@ def list_tasks_from_user(user_id: UUID, session: Session = Depends(get_session))
 		output_json = TaskPresenter.toJSON(output)
 		output_xml = TaskPresenter.toXml(output)
 		return {"json": output_json, "xml": output_xml}
-	except UserNotFoundError as e:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=str(e),  # "User with id ... not found"
-		)
-	except HTTPException as e:
-		raise e
+	except Exception as e:
+		raise_http_from_error(e)
 
 
 # Consultar tarefas por ID
@@ -81,13 +71,8 @@ def find_task_by_id(task_id :UUID, session: Session = Depends(get_session)):
 		output_xml = TaskPresenter.toXml(output)
 
 		return {"json": output_json, "xml": output_xml}
-	except TaskNotFoundError as e:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=str(e),  # "User with id ... not found"
-		)	
-	except HTTPException as e:
-		raise e
+	except Exception as e:
+		raise_http_from_error(e)
 	
 # Alterar Dados tarefa
 # http:://localhost:8000/tasks/{task_id}
@@ -102,18 +87,9 @@ def update_task(task_id: UUID, request: UpdateTaskDataDTO, session: Session = De
 		output_json = TaskPresenter.toJSON(output)
 		output_xml = TaskPresenter.toXml(output)
 		return {"json": output_json, "xml": output_xml}
-	except TaskNotFoundError as e:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=str(e),  # "Task with id ... not found"
-		)
-	except UserNotFoundError as e:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=str(e),  # "User with id ... not found"
-		)
-	except HTTPException as e:
-		raise e
+	except Exception as e:
+		raise_http_from_error(e)
+
 # Deletar tarefa
 # http:://localhost:8000/tasks/{task_id}
 @router.delete("/{task_id}", status_code=status.HTTP_200_OK)
@@ -126,11 +102,6 @@ def delete_task(task_id: UUID, session: Session = Depends(get_session)):
 		output_json = TaskPresenter.toJSON(output)
 		output_xml = TaskPresenter.toXml(output)
 		return {"json": output_json, "xml": output_xml}
-	except TaskNotFoundError as e:
-		raise HTTPException(
-			status_code=status.HTTP_404_NOT_FOUND,
-			detail=str(e),  # "Task with id ... not found"
-		)
-	except HTTPException as e:
-		raise e	
+	except Exception as e:
+		raise_http_from_error(e)
 
