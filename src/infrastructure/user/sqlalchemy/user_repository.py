@@ -1,3 +1,4 @@
+from typing import List
 from uuid import UUID
 from domain.user.user_entity import User
 from domain.user.user_repository_interface import userRepositoryInterface
@@ -28,8 +29,8 @@ class userRepository(userRepositoryInterface):
 		user = User(id=user_in_db.id, name=user_in_db.name)
 		return user
 
-	def list_users(self) -> list[User]:
-		users_in_db: list[UserModel] = self.session.query(UserModel).all()
+	def list_users(self) -> List[User]:
+		users_in_db: List[UserModel] = self.session.query(UserModel).all()
 		users = [User(id=user_in_db.id, name=user_in_db.name) for user_in_db in users_in_db]
 		return users
 

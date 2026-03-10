@@ -38,6 +38,11 @@ class Task:
 		if not isinstance(self.completed, bool):
 			raise ValueError("Completed must be a boolean.")
 		return True
+	
+	def mark_as_completed(self) -> None:
+		self.completed = True
 		
 	def __str__(self) -> str:
 		return f"Task(id={self.id}, user_id={self.user_id}, title='{self.title}', completed={self.completed})"
+	
+	

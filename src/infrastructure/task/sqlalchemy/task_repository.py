@@ -1,3 +1,4 @@
+from typing import List
 from uuid import UUID
 from domain.task.task_exceptions import TaskNotFoundError
 from domain.task.task_entity import Task
@@ -61,8 +62,8 @@ class taskRepository(taskRepositoryInterface):
 
 		return None
 	
-	def list_tasks_from_user(self, user_id: UUID) -> list[Task]:
-		tasks_in_db: list[TaskModel] = self.session.query(TaskModel).filter(TaskModel.user_id == user_id).order_by(TaskModel.id).all() #order by para fins didaticos
+	def list_tasks_from_user(self, user_id: UUID) -> List[Task]:
+		tasks_in_db: List[TaskModel] = self.session.query(TaskModel).filter(TaskModel.user_id == user_id).order_by(TaskModel.id).all() #order by para fins didaticos
 		tasks = [Task(id=task_in_db.id, 
 					title=task_in_db.title, 
 					description=task_in_db.description, 

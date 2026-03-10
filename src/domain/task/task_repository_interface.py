@@ -1,8 +1,6 @@
 
-
-
-
 from abc import ABC, abstractmethod
+from typing import List
 from uuid import UUID
 
 from domain.task.task_entity import Task
@@ -26,5 +24,5 @@ class taskRepositoryInterface(ABC):
 		raise NotImplementedError
 	
 	@abstractmethod
-	def list_tasks_from_user(self, user_id: UUID) -> list[Task]:
+	def list_tasks_from_user(self, user_id: UUID) -> List[Task]:
 		raise NotImplementedError
