@@ -21,8 +21,6 @@ class UpdateTaskUseCase(TaskCaseInterface):
 			task.title = input_dto.title
 		if input_dto.description is not None:
 			task.description = input_dto.description
-		if input_dto.completed is not None:
-			task.completed = input_dto.completed		
 		self.task_repository.update_task(task)
 		return UpdateTaskOutputDTO(id=task.id, 
 							 user_id=task.user_id, 

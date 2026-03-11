@@ -6,7 +6,6 @@ class UpdateTaskDataDTO(BaseModel):
     user_id: Optional[UUID] = None
     title: Optional[str] = None
     description: Optional[str] = None
-    completed: Optional[bool] = None
 
 class UpdateTaskInputDTO(UpdateTaskDataDTO):
 	id: UUID

@@ -54,7 +54,7 @@ class taskRepository(taskRepositoryInterface):
 		return None
 
 	def delete_task(self, task_id: UUID) -> None:
-		result = self.session.query(TaskModel).filter(TaskModel.id == task_id).delete()
+		result = self.session.query(TaskModel).filter(TaskModel.id == task_id).delete(synchronize_session=False)
 		if result == 0:
 			raise TaskNotFoundError(task_id)
 		
