@@ -17,7 +17,9 @@ class UserPresenter :
 	def _(user_dto: findUserByIdOutputDTO) -> dict: #O nome do método é irrelevante, o importante é o tipo do argumento. O método é registrado para ser chamado quando o argumento for do tipo findUserByIdOutputDTO.
 		return {
 			"id": str(user_dto.id),
-			"name": user_dto.name
+			"name": user_dto.name,
+			"tasks": user_dto.tasks,
+			"pending_tasks": user_dto.pending_tasks
 		}
 	
 	@toJSON.register #decorador para registrar uma implementação específica do método toJSON para um tipo específico de argumento.
@@ -64,6 +66,15 @@ class UserPresenter :
 		user_data = ET.Element("user")
 		ET.SubElement(user_data, "id").text = str(user_dto.id)
 		ET.SubElement(user_data, "name").text = user_dto.name
+		for task in user_dto.tasks:
+			task_element = ET.SubElement(user_data, "task")
+			ET.SubElement(task_element, "id").text = str(task.id)
+			ET.SubElement(task_element, "title").text = task.title
+			ET.SubElement(task_element, "description").text = task.description
+			ET.SubElement(task_element, "completed").text = str(task.completed)
+		ET.SubElement(user_data, "pending_tasks").text = str(user_dto.pending_tasks)
+		
+				
 		return ET.tostring(user_data, encoding='unicode')
 
 	@toXml.register

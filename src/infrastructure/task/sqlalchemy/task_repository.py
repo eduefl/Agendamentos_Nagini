@@ -63,7 +63,7 @@ class taskRepository(taskRepositoryInterface):
 		return None
 	
 	def list_tasks_from_user(self, user_id: UUID) -> List[Task]:
-		tasks_in_db: List[TaskModel] = self.session.query(TaskModel).filter(TaskModel.user_id == user_id).order_by(TaskModel.id).all() #order by para fins didaticos
+		tasks_in_db: List[TaskModel] = self.session.query(TaskModel).filter(TaskModel.user_id == user_id).order_by(TaskModel.completed.desc(), TaskModel.id.asc()).all()  # order by para fins didaticos
 		tasks = [Task(id=task_in_db.id, 
 					title=task_in_db.title, 
 					description=task_in_db.description, 

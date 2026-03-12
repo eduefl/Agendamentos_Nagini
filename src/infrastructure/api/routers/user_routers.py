@@ -1,4 +1,5 @@
 from uuid import UUID
+from infrastructure.task.sqlalchemy.task_repository import taskRepository
 from fastapi import APIRouter, Depends, HTTPException, status
 from domain.user.user_exceptions import UserNotFoundError
 from usecases.user.add_user.add_user_dto import AddUserInputDTO
@@ -37,7 +38,8 @@ def add_user(request: AddUserInputDTO, session: Session = Depends(get_session)):
 def find_user_by_id(user_id :UUID, session: Session = Depends(get_session)):
 	try:
 		user_repository = userRepository(session = session)
-		usecase = FindUserByIdUseCase(user_repository = user_repository)
+		task_repository = taskRepository(session = session) # aqui criamos o repositorio de tarefas para passar para o usecase, que precisa dele para buscar as tarefas do usuario. O repositorio de tarefas é criado usando a mesma sessão do banco de dados, garantindo que todas as operações sejam consistentes e transacionais.
+		usecase = FindUserByIdUseCase(user_repository = user_repository, task_repository = task_repository)
 		output =  usecase.execute(input = findUserByIdInputDTO(id=user_id)) 
 		output_json = UserPresenter.toJSON(output)
 		output_xml = UserPresenter.toXml(output)
