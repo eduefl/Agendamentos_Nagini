@@ -12,3 +12,5 @@ class TestUserWithTasks:
 		assert user.count_pending_tasks() == 2
 		task1.mark_as_completed()
 		assert user.count_pending_tasks() == 1
+		assert str(user) == f"User(id={user.id}, name='{user.name}')"
+		
