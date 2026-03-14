@@ -20,7 +20,7 @@ class User:
 			raise ValueError("ID must be a valid UUID.")
 		if not isinstance(self.name, str):
 			raise ValueError("Name must be a string.")
-		if not self.name:
+		if not self.name.strip():
 			raise ValueError("Name cannot be empty.")
 		
 	def collect_tasks(self, tasks: List[Task]) -> None:

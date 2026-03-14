@@ -3,3 +3,5 @@ uvicorn
 pydantic==1.10.11
 psycopg2-binary
 sqlalchemy
+pytest
+httpx
