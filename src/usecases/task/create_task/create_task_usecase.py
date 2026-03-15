@@ -16,7 +16,7 @@ class CreateTaskUseCase(TaskCaseInterface):
 		self.user_repository = user_repository	
 
 	def execute(self, input: CreateTaskInputDTO) -> createTaskOutputDTO:
-		self.user_repository.find_user_by_id(input.user_id)  # só valida existência
+		self.user_repository.find_user_by_id(user_id= input.user_id)  # só valida existência
 		task = Task(
 			id=uuid4(),
 			user_id=input.user_id,
