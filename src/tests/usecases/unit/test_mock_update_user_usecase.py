@@ -1,6 +1,3 @@
-
-
-
 from unittest.mock import MagicMock
 from uuid import uuid4
 from domain.user.user_exceptions import UserNotFoundError
