@@ -7,9 +7,9 @@ class updateUserUsecase(UseCaseInterface):
 	def __init__(self, user_repository: userRepositoryInterface):
 		self.user_repository = user_repository
 
-	def execute(self, input_dto: UpdateUserInputDTO) -> UpdateUserOutputDTO:
-		user = self.user_repository.find_user_by_id(user_id= input_dto.id)
-		user.name = input_dto.name
+	def execute(self, input: UpdateUserInputDTO) -> UpdateUserOutputDTO:
+		user = self.user_repository.find_user_by_id(user_id= input.id)
+		user.name = input.name
 		self.user_repository.update_user(user)
 		return UpdateUserOutputDTO(id=user.id, name=user.name)	
 	

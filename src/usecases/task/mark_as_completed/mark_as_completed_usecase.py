@@ -7,8 +7,8 @@ class MarkAsCompletedUseCase(TaskCaseInterface):
 	def __init__(self, task_repository: taskRepositoryInterface):
 		self.task_repository = task_repository
 
-	def execute(self, input_dto: MarkAsCompletedInputDTO) -> MarkAsCompletedOutputDTO:
-		task = self.task_repository.get_task_by_id(input_dto.id)  # Confirma que a tarefa existe, se não existir, o método get_by_id deve lançar uma exceção
+	def execute(self, input: MarkAsCompletedInputDTO) -> MarkAsCompletedOutputDTO:
+		task = self.task_repository.get_task_by_id(input.id)  # Confirma que a tarefa existe, se não existir, o método get_by_id deve lançar uma exceção
 		task.mark_as_completed()
 		self.task_repository.update_task(task)
 		return MarkAsCompletedOutputDTO(id=task.id, 

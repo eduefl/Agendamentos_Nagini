@@ -10,10 +10,10 @@ class ListTasksFromUserUseCase(UseCaseInterface):
 		self.task_repository = task_repository
 		self.user_repository = user_repository
 
-	def execute(self, input_dto: ListTasksFromUserInputDTO) -> ListTasksFromUserOutputDTO:
+	def execute(self, input: ListTasksFromUserInputDTO) -> ListTasksFromUserOutputDTO:
 		# Verifica se o usuário existe, se não existir, o método find_user_by_id deve lançar uma exceção
-		self.user_repository.find_user_by_id(input_dto.user_id) 
-		tasks = self.task_repository.list_tasks_from_user(input_dto.user_id)
+		self.user_repository.find_user_by_id(input.user_id) 
+		tasks = self.task_repository.list_tasks_from_user(input.user_id)
 		tasks_dto = [TaskDTO(id=task.id, 
 					   	title=task.title, 
 						description=task.description, 
