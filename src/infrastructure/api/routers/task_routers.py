@@ -114,7 +114,7 @@ def complete_task(task_id: UUID, session: Session = Depends(get_session)):
 		task_repository = taskRepository(session = session)
 		usecase = MarkAsCompletedUseCase(task_repository = task_repository)
 		input_dto = MarkAsCompletedInputDTO(id = task_id)
-		output = usecase.execute(input_dto = input_dto)	
+		output = usecase.execute(input = input_dto)	
 		output_json = TaskPresenter.toJSON(output)
 		output_xml = TaskPresenter.toXml(output)
 		return {"json": output_json, "xml": output_xml}
