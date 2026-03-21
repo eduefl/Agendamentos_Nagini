@@ -1,4 +1,5 @@
 from uuid import uuid4
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -16,6 +17,11 @@ def make_user():
         data = {
             "id": uuid4(),
             "name": "John Doe",
+            "email": f"john.doe+{uuid4().hex}@example.com",
+            # aqui é só um placeholder para testes de entidade/unidade
+            # (em testes de use case AddUser, o hash deve vir do hasher)
+            "hashed_password": "hashed-password",
+            "is_active": True,
         }
         data.update(overrides)
         return User(**data)

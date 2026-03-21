@@ -7,8 +7,8 @@ class UserModel(Base):
 
 	__tablename__ = "tb_users"
 
-	id = Column(UUID, primary_key=True, index=True)
-	name = Column(String, index=True)
-	# email = Column(String, unique=True, index=True)
-	# hashed_password = Column(String)
-	# is_active = Column(Boolean, default=True)
+	id = Column(UUID, primary_key=True, index=True, nullable=False)
+	name = Column(String, index=True, nullable=False)
+	email = Column(String, unique=True, index=True, nullable=False)
+	hashed_password = Column(String, nullable=False)
+	is_active = Column(Boolean, default=True, nullable=False)

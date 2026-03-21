@@ -31,7 +31,13 @@ class TestMockUpdateTaskUseCase:
 																	title="Task 1",
 																	description="Description for Task", 																
 																	completed=False)
-		user_mock_repository.find_user_by_id.return_value = User(id=user_id2, name="Jane Doe")
+		user_mock_repository.find_user_by_id.return_value = User(
+															id=user_id2,
+															name="Jane Doe",
+															email="jane@example.com",
+															hashed_password="hashed",
+															is_active=True,
+														)		
 
 		# output(response)
 		output = usecase.execute(input = input_dto)

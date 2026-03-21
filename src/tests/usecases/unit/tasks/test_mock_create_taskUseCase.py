@@ -25,7 +25,13 @@ class TestMockCreateTaskUseCase:
 		input_dto = CreateTaskInputDTO(user_id = user_id , 
 								 		title="Task 1", 
 										description="Description for Task")
-		user_mock_repository.find_user_by_id.return_value = User(id=user_id, name="John Doe")
+		user_mock_repository.find_user_by_id.return_value = User(
+																	id=user_id,
+																	name="John Doe",
+																	email="john@example.com",
+																	hashed_password="hashed",
+																	is_active=True,
+																)
 		
 		# output(response)
 		output = use_case.execute(input = input_dto)

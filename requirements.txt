@@ -6,3 +6,9 @@ sqlalchemy
 pytest
 httpx
 pytest-cov
+python-multipart
+python-jose
+passlib
+pydantic[email]
+strawberry-graphql[fastapi]
+slowapi

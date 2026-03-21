@@ -1,17 +1,21 @@
-from pydantic import BaseModel
-# from domain.user import User	
 from typing import List
 from uuid import UUID
-# input
 
+from pydantic import BaseModel, EmailStr
+
+
+# input
 class ListUsersInputDTO(BaseModel):
-	pass
+    pass
+
 
 class UserDto(BaseModel):
-	id: UUID
-	name: str
+    id: UUID
+    name: str
+    email: EmailStr
+    is_active: bool
+
 
 # output
-
 class ListUsersOutputDTO(BaseModel):
-	users: List[UserDto]
+    users: List[UserDto]
