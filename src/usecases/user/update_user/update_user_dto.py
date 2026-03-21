@@ -23,3 +23,4 @@ class UpdateUserOutputDTO(BaseModel):
     name: str
     email: EmailStr
     is_active: bool
+    roles: list[str]

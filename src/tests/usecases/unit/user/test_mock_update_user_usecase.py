@@ -11,7 +11,7 @@ from usecases.user.update_user.update_user_usecase import updateUserUsecase
 
 
 class TestMockUpdateUserUseCase:
-    def test_Mock_Update_User_UseCase(self):
+    def test_mock_update_user_usecase(self):
         mock_user_repository = MagicMock(spec=userRepositoryInterface)
 
         user_id = uuid4()
@@ -21,6 +21,7 @@ class TestMockUpdateUserUseCase:
             email="john@example.com",
             hashed_password="hashed",
             is_active=True,
+            roles={"cliente"},
         )
 
         use_case = updateUserUsecase(mock_user_repository)
@@ -38,6 +39,10 @@ class TestMockUpdateUserUseCase:
         assert str(output.email) == "jane@example.com"
         assert output.is_active is False
 
+        # se o DTO de saída tiver roles, valida também:
+        if hasattr(output, "roles"):
+            assert output.roles == ["cliente"]
+
         mock_user_repository.find_user_by_id.assert_called_once_with(user_id=user_id)
         mock_user_repository.update_user.assert_called_once()
 
@@ -54,8 +59,10 @@ class TestMockUpdateUserUseCase:
 
         # senha não deve mudar nesse use case
         assert updated_user.hashed_password == "hashed"
+        # roles também não deve mudar nesse use case
+        assert updated_user.roles == {"cliente"}
 
-    def test_Mock_Update_User_UseCase_User_Not_Found(self):
+    def test_mock_update_user_usecase_user_not_found(self):
         mock_user_repository = MagicMock(spec=userRepositoryInterface)
 
         user_id = uuid4()
@@ -74,7 +81,7 @@ class TestMockUpdateUserUseCase:
         mock_user_repository.find_user_by_id.assert_called_once_with(user_id=user_id)
         mock_user_repository.update_user.assert_not_called()
 
-    def test_Mock_Update_User_UseCase_Email_Already_Exists(self):
+    def test_mock_update_user_usecase_email_already_exists(self):
         mock_user_repository = MagicMock(spec=userRepositoryInterface)
 
         user_id = uuid4()
@@ -84,6 +91,7 @@ class TestMockUpdateUserUseCase:
             email="john@example.com",
             hashed_password="hashed",
             is_active=True,
+            roles={"cliente"},
         )
 
         # simula conflito de email no update
@@ -110,3 +118,5 @@ class TestMockUpdateUserUseCase:
         assert updated_user.email == "dup@example.com"
         # senha continua igual
         assert updated_user.hashed_password == "hashed"
+        # roles continua igual
+        assert updated_user.roles == {"cliente"}

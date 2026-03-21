@@ -17,8 +17,8 @@ class TestMockListUsersUseCase:
         email2 = "beltrano@example.com"
 
         mock_user_repository.list_users.return_value = [
-            make_user(name=name1, email=email1, is_active=True),
-            make_user(name=name2, email=email2, is_active=False),
+            make_user(name=name1, email=email1, is_active=True, roles={"cliente"}),
+            make_user(name=name2, email=email2, is_active=False, roles={"prestador"}),
         ]
 
         use_case = ListUsersUseCase(mock_user_repository)
@@ -30,6 +30,11 @@ class TestMockListUsersUseCase:
         assert {u.name for u in output.users} == {name1, name2}
         assert {str(u.email) for u in output.users} == {email1, email2}
         assert {u.is_active for u in output.users} == {True, False}
+
+        # novo: roles no output
+        assert all(isinstance(u.roles, list) for u in output.users)
+        assert any(u.roles == ["cliente"] for u in output.users)
+        assert any(u.roles == ["prestador"] for u in output.users)
 
         mock_user_repository.list_users.assert_called_once()
         assert mock_user_repository.list_users.call_count == 1

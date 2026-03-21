@@ -25,6 +25,7 @@ class TestFindUserByIdUseCase:
             email="john@example.com",
             hashed_password="hashed",
             is_active=True,
+            roles={"cliente"},
         )
 
         # se o use case chamar list_tasks_from_user e você não setar retorno,
@@ -42,6 +43,7 @@ class TestFindUserByIdUseCase:
         assert output.is_active is True
         assert output.tasks == []
         assert output.pending_tasks == 0
+        assert output.roles == ["cliente"]
 
         mock_user_repository.find_user_by_id.assert_called_once_with(user_id=user_id)
         mock_task_repository.list_tasks_from_user.assert_called_once_with(user_id=user_id)
@@ -58,6 +60,7 @@ class TestFindUserByIdUseCase:
             email="john@example.com",
             hashed_password="hashed",
             is_active=True,
+            roles={"cliente"},
         )
         mock_user_repository.find_user_by_id.return_value = user
 
@@ -89,6 +92,7 @@ class TestFindUserByIdUseCase:
         assert output.name == "John Doe"
         assert str(output.email) == "john@example.com"
         assert output.is_active is True
+        assert output.roles == ["cliente"]
 
         assert len(output.tasks) == 2
         assert {t.id for t in output.tasks} == {task1.id, task2.id}

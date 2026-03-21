@@ -8,11 +8,16 @@ from usecases.user.update_user.update_user_usecase import updateUserUsecase
 
 
 class TestUpdateUserUseCaseIntegration:
-    def test_update_user_usecase(self, tst_db_session, make_user):
+    def test_update_user_usecase(self, tst_db_session, make_user, seed_roles):
         session = tst_db_session
         user_repo = userRepository(session=session)
 
-        user = make_user(name="John Doe", email="john@example.com", is_active=True)
+        user = make_user(
+            name="John Doe",
+            email="john@example.com",
+            is_active=True,
+            roles={"cliente"},
+        )
         user_repo.add_user(user=user)
 
         use_case = updateUserUsecase(user_repo)
@@ -30,10 +35,15 @@ class TestUpdateUserUseCaseIntegration:
         assert str(output.email) == "jane@example.com"
         assert output.is_active is False
 
+        # se o DTO de saída tiver roles, valida também (update não deve mexer nisso)
+        if hasattr(output, "roles"):
+            assert output.roles == ["cliente"]
+
         updated_user = user_repo.find_user_by_id(user_id=user.id)
         assert updated_user.name == "Jane Doe"
         assert updated_user.email == "jane@example.com"
         assert updated_user.is_active is False
+        assert updated_user.roles == {"cliente"}
 
     def test_update_user_usecase_user_not_found(self, tst_db_session):
         session = tst_db_session
@@ -48,13 +58,19 @@ class TestUpdateUserUseCaseIntegration:
         with pytest.raises(UserNotFoundError):
             use_case.execute(input_dto)
 
-    def test_update_user_usecase_raises_email_already_exists(self, tst_db_session, make_user):
+    def test_update_user_usecase_raises_email_already_exists(
+        self, tst_db_session, make_user, seed_roles
+    ):
         session = tst_db_session
         user_repo = userRepository(session=session)
 
         # cria 2 usuários com emails distintos
-        user1 = make_user(name="User 1", email="user1@example.com", is_active=True)
-        user2 = make_user(name="User 2", email="user2@example.com", is_active=True)
+        user1 = make_user(
+            name="User 1", email="user1@example.com", is_active=True, roles={"cliente"}
+        )
+        user2 = make_user(
+            name="User 2", email="user2@example.com", is_active=True, roles={"prestador"}
+        )
         user_repo.add_user(user=user1)
         user_repo.add_user(user=user2)
 
@@ -74,3 +90,4 @@ class TestUpdateUserUseCaseIntegration:
         assert user1_db.email == "user1@example.com"
         assert user1_db.name == "User 1"
         assert user1_db.is_active is True
+        assert user1_db.roles == {"cliente"}

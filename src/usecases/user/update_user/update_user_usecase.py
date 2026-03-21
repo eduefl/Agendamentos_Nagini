@@ -27,4 +27,5 @@ class updateUserUsecase(UseCaseInterface):
             name=user.name,
             email=user.email,
             is_active=user.is_active,
+            roles=sorted(list(user.roles)),
         )

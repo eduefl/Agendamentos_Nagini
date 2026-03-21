@@ -22,5 +22,6 @@ class findUserByIdOutputDTO(BaseModel):
     name: str
     email: EmailStr
     is_active: bool
+    roles: List[str]
     tasks: List[TaskUsrOutputDTO]
     pending_tasks: int

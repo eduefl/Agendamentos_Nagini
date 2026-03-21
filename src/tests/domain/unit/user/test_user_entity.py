@@ -14,6 +14,7 @@ class TestUser:
             name=user_name,
             email=user_email,
             hashed_password=user_hashed_password,
+            roles = {'prestador'}
         )
 
         assert user.id == user_id
@@ -22,6 +23,7 @@ class TestUser:
         assert user.hashed_password == user_hashed_password
         assert user.is_active is True
         assert user.tasks == []
+        assert user.roles == {'prestador'}  
 
     def test_user_id_validation(self, make_user):
         with pytest.raises(ValueError, match="ID must be a valid UUID."):
@@ -70,3 +72,24 @@ class TestUser:
     def test_user_is_active_validation_type(self, make_user):
         with pytest.raises(ValueError, match="is_active must be a boolean."):
             make_user(is_active="true")
+
+    # --- roles tests (novos) ---
+    def test_user_roles_normalization(self, make_user):
+        user = make_user(roles=[" Cliente ", "ADMIN"])
+        assert user.roles == {"cliente", "admin"}
+
+    def test_user_roles_must_be_iterable_of_strings(self, make_user):
+        with pytest.raises(ValueError, match="Each role must be a string."):
+            make_user(roles=[123])
+
+    def test_user_roles_cannot_be_empty_string(self, make_user):
+        with pytest.raises(ValueError, match="Role cannot be empty."):
+            make_user(roles=[""])
+
+    def test_user_roles_cannot_be_blank(self, make_user):
+        with pytest.raises(ValueError, match="Role cannot be empty."):
+            make_user(roles=["   "])
+
+    def test_user_roles_cannot_contain_spaces(self, make_user):
+        with pytest.raises(ValueError, match="Role cannot contain spaces."):
+            make_user(roles=["admin user"])

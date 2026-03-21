@@ -38,6 +38,7 @@ class FindUserByIdUseCase(UseCaseInterface):
             name=user.name,
             email=user.email,
             is_active=user.is_active,
+            roles=sorted(list(user.roles)),
             tasks=tasks_dto,
             pending_tasks=user.count_pending_tasks(),
         )

@@ -1,14 +1,16 @@
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-import pytest
-
 from domain.task.task_entity import Task
 from domain.user.user_entity import User
 from infrastructure.api.database import Base
+
+# Se RoleModel estiver no mesmo arquivo do UserModel:
+from infrastructure.user.sqlalchemy.user_model import RoleModel
 
 
 @pytest.fixture
@@ -22,6 +24,9 @@ def make_user():
             # (em testes de use case AddUser, o hash deve vir do hasher)
             "hashed_password": "hashed-password",
             "is_active": True,
+            # novo: por padrão vazio para não forçar regra do repo em testes de entidade
+            # (em testes do repositório / usecase AddUser, passe roles explicitamente)
+            "roles": {"cliente"},
         }
         data.update(overrides)
         return User(**data)
@@ -73,9 +78,8 @@ def engine():
     
     # Create all tables defined in the Base metadata in the in-memory database
     Base.metadata.create_all(bind=engine)
-    
-    # Return the created engine for use in tests
     return engine
+
 
 @pytest.fixture
 def tst_db_session(engine):
@@ -114,4 +118,22 @@ def tst_db_session(engine):
         session.rollback()
         # Ensure the session is closed after the test
         session.close()
-        
+
+
+@pytest.fixture(autouse=True)
+def seed_roles(tst_db_session):
+    """
+    Garante que as roles usadas no sistema existam no banco.
+    Útil para testes do userRepository.add_user (que busca role por nome).
+    """
+    existing = {
+        r[0]
+        for r in tst_db_session.query(RoleModel.name).all()
+    }
+
+    for name in ("cliente", "prestador"):
+        if name not in existing:
+            tst_db_session.add(RoleModel(name=name))
+
+    tst_db_session.commit()
+    return None

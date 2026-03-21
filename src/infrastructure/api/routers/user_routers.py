@@ -3,7 +3,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from domain.user.user_exceptions import UserNotFoundError,EmailAlreadyExistsError
+from domain.user.user_exceptions import (
+    EmailAlreadyExistsError,
+    RoleNotFoundError,
+    RolesRequiredError,
+    UserNotFoundError,
+)
 from infrastructure.api.database import get_session
 from infrastructure.presenters.user_presenter import UserPresenter
 from infrastructure.security.passlib_password_hasher import PasslibPasswordHasher
@@ -32,19 +37,24 @@ def add_user(request: AddUserInputDTO, session: Session = Depends(get_session)):
             password_hasher=password_hasher,
         )
 
+        # AddUserInputDTO agora deve ter request.role
         output = usecase.execute(input=request)
+
         output_json = UserPresenter.toJSON(output)
         output_xml = UserPresenter.toXml(output)
-
         return {"json": output_json, "xml": output_xml}
 
     except EmailAlreadyExistsError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),  # ex: "User with email ... already exists"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except RolesRequiredError as e:
+        # normalmente seria 422, mas como é regra de domínio, 400 também é aceitável.
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except RoleNotFoundError as e:
+        # role inválida/inesperada no input
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except HTTPException as e:
         raise e
+
 
 @router.get("/{user_id}", status_code=status.HTTP_200_OK)
 def find_user_by_id(user_id: UUID, session: Session = Depends(get_session)):
@@ -60,14 +70,10 @@ def find_user_by_id(user_id: UUID, session: Session = Depends(get_session)):
 
         output_json = UserPresenter.toJSON(output)
         output_xml = UserPresenter.toXml(output)
-
         return {"json": output_json, "xml": output_xml}
 
     except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except HTTPException as e:
         raise e
 
@@ -79,9 +85,9 @@ def list_users(session: Session = Depends(get_session)):
         usecase = ListUsersUseCase(user_repository=user_repository)
 
         output = usecase.execute(input=ListUsersInputDTO())
+
         output_json = UserPresenter.toJSON(output)
         output_xml = UserPresenter.toXml(output)
-
         return {"json": output_json, "xml": output_xml}
 
     except HTTPException as e:
@@ -117,18 +123,11 @@ def update_user(
 
         output_json = UserPresenter.toJSON(output)
         output_xml = UserPresenter.toXml(output)
-
         return {"json": output_json, "xml": output_xml}
 
     except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except EmailAlreadyExistsError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),  # ex: "User with email ... already exists"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except HTTPException as e:
         raise e

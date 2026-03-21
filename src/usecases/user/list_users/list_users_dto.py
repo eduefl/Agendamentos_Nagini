@@ -14,6 +14,7 @@ class UserDto(BaseModel):
     name: str
     email: EmailStr
     is_active: bool
+    roles: List[str]
 
 
 # output
