@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from usecases.user.add_user.add_cliente_usecase import AddClientUseCase
+from usecases.user.add_user.add_cliente_dto import AddClientInputDTO
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -55,6 +57,34 @@ def add_user(request: AddUserInputDTO, session: Session = Depends(get_session)):
     except HTTPException as e:
         raise e
 
+
+@router.post("/clients", status_code=status.HTTP_201_CREATED)
+def add_client(request: AddClientInputDTO, session: Session = Depends(get_session)):
+    try:
+        user_repository = userRepository(session=session)
+        password_hasher = PasslibPasswordHasher()
+
+        usecase = AddClientUseCase(
+            user_repository=user_repository,
+            password_hasher=password_hasher,
+        )
+
+        output = usecase.execute(input=request)
+
+        output_json = UserPresenter.toJSON(output)
+        output_xml = UserPresenter.toXml(output)
+        return {"json": output_json, "xml": output_xml}
+
+    except EmailAlreadyExistsError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except RolesRequiredError as e:
+        # normalmente seria 422, mas como é regra de domínio, 400 também é aceitável.
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except RoleNotFoundError as e:
+        # role inválida/inesperada no input
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except HTTPException as e:
+        raise e
 
 @router.get("/{user_id}", status_code=status.HTTP_200_OK)
 def find_user_by_id(user_id: UUID, session: Session = Depends(get_session)):

@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 from functools import singledispatchmethod
 from typing import Any, Iterable, List, Optional
 
+from usecases.user.add_user.add_cliente_dto import AddClientOutputDTO
 from usecases.user.add_user.add_user_dto import AddUserOutputDTO
 from usecases.user.find_user_by_id.find_user_by_id_dto import findUserByIdOutputDTO
 from usecases.user.list_users.list_users_dto import ListUsersOutputDTO
@@ -51,6 +52,18 @@ class UserPresenter:
     @toJSON.register
     @staticmethod
     def _(user_dto: AddUserOutputDTO) -> dict:
+        return {
+            "id": str(user_dto.id),
+            "name": user_dto.name,
+            "email": str(getattr(user_dto, "email", "")) if getattr(user_dto, "email", None) is not None else None,
+            "is_active": getattr(user_dto, "is_active", None),
+            "roles": _normalize_roles(getattr(user_dto, "roles", None)),
+        }
+
+
+    @toJSON.register
+    @staticmethod
+    def _(user_dto: AddClientOutputDTO) -> dict:
         return {
             "id": str(user_dto.id),
             "name": user_dto.name,
@@ -126,6 +139,29 @@ class UserPresenter:
     @toXml.register
     @staticmethod
     def _(user_dto: AddUserOutputDTO) -> str:
+        user_data = ET.Element("user")
+        ET.SubElement(user_data, "id").text = str(user_dto.id)
+        ET.SubElement(user_data, "name").text = str(user_dto.name)
+
+        email = getattr(user_dto, "email", None)
+        if email is not None:
+            ET.SubElement(user_data, "email").text = str(email)
+
+        is_active = getattr(user_dto, "is_active", None)
+        if is_active is not None:
+            ET.SubElement(user_data, "is_active").text = str(is_active)
+
+        roles = getattr(user_dto, "roles", None)
+        if roles is not None:
+            roles_el = ET.SubElement(user_data, "roles")
+            for r in _normalize_roles(roles) or []:
+                ET.SubElement(roles_el, "role").text = str(r)
+
+        return ET.tostring(user_data, encoding="unicode")
+
+    @toXml.register
+    @staticmethod
+    def _(user_dto: AddClientOutputDTO) -> str:
         user_data = ET.Element("user")
         ET.SubElement(user_data, "id").text = str(user_dto.id)
         ET.SubElement(user_data, "name").text = str(user_dto.name)
