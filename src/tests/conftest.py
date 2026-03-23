@@ -34,8 +34,9 @@ def make_user():
             # aqui é só um placeholder para testes de entidade/unidade
             # (em testes de use case AddUser, o hash deve vir do hasher)
             "hashed_password": "hashed-password",
-            "is_active": True,
-            # novo: por padrão vazio para não forçar regra do repo em testes de entidade
+            "is_active": False,
+            "activation_code": None,
+            "activation_code_expires_at": None,            # novo: por padrão vazio para não forçar regra do repo em testes de entidade
             # (em testes do repositório / usecase AddUser, passe roles explicitamente)
             "roles": {"cliente"},
         }

@@ -17,9 +17,6 @@ class updateUserUsecase(UseCaseInterface):
         if input.email is not None:
             user.email = str(input.email)
 
-        if input.is_active is not None:
-            user.is_active = input.is_active
-
         self.user_repository.update_user(user=user)
 
         return UpdateUserOutputDTO(

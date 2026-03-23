@@ -1,4 +1,6 @@
 from uuid import uuid4
+from datetime import datetime, timedelta
+
 import pytest
 
 
@@ -21,7 +23,7 @@ class TestUser:
         assert user.name == user_name
         assert user.email == user_email
         assert user.hashed_password == user_hashed_password
-        assert user.is_active is True
+        assert user.is_active is False
         assert user.tasks == []
         assert user.roles == {'prestador'}  
 
@@ -93,3 +95,84 @@ class TestUser:
     def test_user_roles_cannot_contain_spaces(self, make_user):
         with pytest.raises(ValueError, match="Role cannot contain spaces."):
             make_user(roles=["admin user"])
+
+    def test_user_initialization_sets_activation_fields_as_none(self, make_user):
+        user = make_user(roles={"prestador"})
+        assert user.is_active is False
+        assert user.activation_code is None
+        assert user.activation_code_expires_at is None
+
+    def test_user_activation_code_requires_expiration(self, make_user):
+        with pytest.raises(
+            ValueError,
+            match="Activation code expiration must be provided when activation code exists.",
+        ):
+            make_user(
+                activation_code="abc12345",
+                activation_code_expires_at=None,
+            )
+
+    def test_user_activation_expiration_requires_code(self, make_user):
+
+        with pytest.raises(
+            ValueError,
+            match="Activation code must be provided when expiration exists.",
+        ):
+            make_user(
+                activation_code=None,
+                activation_code_expires_at=datetime.now(),
+            )
+
+
+
+    def test_set_activation_code(self, make_user):
+        user = make_user()
+        expires_at = datetime.now() + timedelta(minutes=15)
+
+        user.set_activation_code("abc12345", expires_at)
+
+        assert user.activation_code == "abc12345"
+        assert user.activation_code_expires_at == expires_at
+
+    def test_set_activation_code_with_invalid_expiration(self, make_user):
+        user = make_user()
+
+        with pytest.raises(
+            ValueError,
+            match="Activation code expiration must be provided when activation code exists.",
+        ):
+            user.set_activation_code("abc12345", None)
+
+    def test_clear_activation_code(self, make_user):
+        
+        user = make_user()
+        expires_at = datetime.now() + timedelta(minutes=15)
+
+        user.set_activation_code("abc12345", expires_at)
+        user.clear_activation_code()
+
+        assert user.activation_code is None
+        assert user.activation_code_expires_at is None
+
+    def test_activate_user_clears_activation_data(self, make_user):
+        
+        user = make_user()
+        expires_at = datetime.now() + timedelta(minutes=15)
+
+        user.set_activation_code("abc12345", expires_at)
+        user.activate()
+
+        assert user.is_active is True
+        assert user.activation_code is None
+        assert user.activation_code_expires_at is None
+
+    def test_set_activation_code_normalizes_code(self, make_user):
+        from datetime import datetime, timedelta
+
+        user = make_user()
+        expires_at = datetime.now() + timedelta(minutes=15)
+
+        user.set_activation_code("  abc12345  ", expires_at)
+
+        assert user.activation_code == "abc12345"
+

@@ -8,7 +8,7 @@ from pydantic import BaseModel, EmailStr
 class UpdateUserDataDTO(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
-    is_active: Optional[bool] = None
+    # is_active: Optional[bool] = None
 
     # no futuro: phone, etc.
 

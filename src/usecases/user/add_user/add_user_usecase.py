@@ -25,7 +25,7 @@ class AddUserUseCase(UseCaseInterface):
             name=input.name,
             email=str(input.email),
             hashed_password=hashed_password,
-            is_active=True,
+            is_active=False,  # usuário começa como inativo, precisa ativar por email
             roles={input.role},  # <-- obrigatório agora
         )
 

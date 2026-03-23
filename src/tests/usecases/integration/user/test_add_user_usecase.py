@@ -1,7 +1,11 @@
 import pytest
 from uuid import UUID
 
-from domain.user.user_exceptions import EmailAlreadyExistsError, RoleNotFoundError, RolesRequiredError
+from domain.user.user_exceptions import (
+    EmailAlreadyExistsError,
+    RoleNotFoundError,
+    RolesRequiredError,
+)
 from infrastructure.security.passlib_password_hasher import PasslibPasswordHasher
 from infrastructure.user.sqlalchemy.user_repository import userRepository
 from usecases.user.add_user.add_user_dto import AddUserInputDTO, AddUserOutputDTO
@@ -43,7 +47,7 @@ class TestAddUserUseCase:
         assert isinstance(output.id, UUID)
         assert output.name == "John Doe"
         assert str(output.email) == "john.doe@example.com"
-        assert output.is_active is True
+        assert output.is_active is False
         assert output.roles == ["cliente"]
 
         assert len(repository.list_users()) == 1
@@ -52,10 +56,12 @@ class TestAddUserUseCase:
         assert found.id == output.id
         assert found.name == "John Doe"
         assert found.email == "john.doe@example.com"
-        assert found.is_active is True
+        assert found.is_active is False
         assert isinstance(found.hashed_password, str)
         assert found.hashed_password != ""
         assert found.roles == {"cliente"}
+        assert found.activation_code is None
+        assert found.activation_code_expires_at is None
 
     def test_create_user_raises_email_already_exists(self, tst_db_session, seed_roles):
         session = tst_db_session
@@ -91,6 +97,9 @@ class TestAddUserUseCase:
         assert len(users) == 1
         assert users[0].email == "dup@example.com"
         assert users[0].roles == {"cliente"}
+        assert users[0].is_active is False
+        assert users[0].activation_code is None
+        assert users[0].activation_code_expires_at is None
 
     def test_create_user_raises_roles_required(self, tst_db_session):
         """
@@ -136,4 +145,4 @@ class TestAddUserUseCase:
         )
 
         with pytest.raises(RoleNotFoundError, match="inexistente"):
-            use_case.execute(input=input_dto)    
+            use_case.execute(input=input_dto)

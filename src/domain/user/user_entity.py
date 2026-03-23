@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional, Set, Iterable
 from uuid import UUID
 
@@ -10,6 +11,8 @@ class User:
     email: str
     hashed_password: str
     is_active: bool
+    activation_code: Optional[str]
+    activation_code_expires_at: Optional[datetime]
     roles: Set[str]
     tasks: List[Task]
 
@@ -19,7 +22,9 @@ class User:
         name: str,
         email: str,
         hashed_password: str,
-        is_active: bool = True,
+        is_active: bool = False,
+        activation_code: Optional[str] = None,
+        activation_code_expires_at: Optional[datetime] = None,
         roles: Optional[Iterable[str]] = None,
     ):
         self.id = id
@@ -27,11 +32,13 @@ class User:
         self.email = email
         self.hashed_password = hashed_password
         self.is_active = is_active
+        self.activation_code = activation_code
+        self.activation_code_expires_at = activation_code_expires_at
         self.roles = set(roles) if roles is not None else set()
         self.tasks = []
         self.validate()
 
-    def validate(self):
+    def validate(self) -> bool:
         if not isinstance(self.id, UUID):
             raise ValueError("ID must be a valid UUID.")
 
@@ -59,7 +66,27 @@ class User:
         if not isinstance(self.is_active, bool):
             raise ValueError("is_active must be a boolean.")
 
-        # roles validation (aberto para novos tipos)
+        if self.activation_code is not None:
+            if not isinstance(self.activation_code, str):
+                raise ValueError("Activation code must be a string.")
+            if not self.activation_code.strip():
+                raise ValueError("Activation code cannot be empty when provided.")
+
+        if self.activation_code_expires_at is not None:
+            if not isinstance(self.activation_code_expires_at, datetime):
+                raise ValueError("Activation code expiration must be a datetime.")
+            
+        if self.activation_code is not None and self.activation_code_expires_at is None:
+            raise ValueError(
+                "Activation code expiration must be provided when activation code exists."
+            )
+
+        if self.activation_code is None and self.activation_code_expires_at is not None:
+            raise ValueError(
+                "Activation code must be provided when expiration exists."
+            )
+            
+
         if not isinstance(self.roles, set):
             raise ValueError("roles must be a set of strings.")
 
@@ -124,6 +151,22 @@ class User:
 
     def activate(self) -> None:
         self.is_active = True
+        self.clear_activation_code()
+
+    def set_activation_code(self, code: str, expires_at: datetime) -> None:
+        normalized_code = code.strip()
+        if not normalized_code:
+            raise ValueError("Activation code must be a non-empty string.")
+        if expires_at is None:
+            raise ValueError("Activation code expiration must be provided when activation code exists.")
+
+        self.activation_code = normalized_code
+        self.activation_code_expires_at = expires_at
+
+
+    def clear_activation_code(self) -> None:
+        self.activation_code = None
+        self.activation_code_expires_at = None
 
     def __str__(self) -> str:
         # não exibir hashed_password

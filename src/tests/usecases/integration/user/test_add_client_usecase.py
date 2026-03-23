@@ -1,19 +1,17 @@
-
-from tests.fakes.fake_email_sender import FakeEmailSender
-import pytest
 from uuid import UUID
+
+import pytest
 
 from domain.user.user_exceptions import EmailAlreadyExistsError
 from infrastructure.security.passlib_password_hasher import PasslibPasswordHasher
 from infrastructure.user.sqlalchemy.user_repository import userRepository
+from tests.fakes.fake_email_sender import FakeEmailSender
 from usecases.user.add_user.add_cliente_dto import AddClientInputDTO, AddClientOutputDTO
 from usecases.user.add_user.add_cliente_usecase import AddClientUseCase
-from infrastructure.notification.smtp_email_sender import SMTPEmailSender
 
 
 class TestAddClientUseCaseIntegration:
     def test_create_client_valid_persists_user_and_assigns_cliente_role(self, tst_db_session):
-        # Arrange
         session = tst_db_session
         repository = userRepository(session=session)
         hasher = PasslibPasswordHasher()
@@ -22,7 +20,7 @@ class TestAddClientUseCaseIntegration:
         use_case = AddClientUseCase(
             user_repository=repository,
             password_hasher=hasher,
-            email_sender=fake_email_sender,            
+            email_sender=fake_email_sender,
         )
 
         input_dto = AddClientInputDTO(
@@ -42,6 +40,11 @@ class TestAddClientUseCaseIntegration:
         assert output.is_active is False
         assert output.roles == ["cliente"]
 
+        assert len(fake_email_sender.sent_emails) == 1
+        to_email, activation_code = fake_email_sender.sent_emails[0]
+        assert to_email == "john.client@example.com"
+        assert activation_code is not None
+        assert activation_code != ""
         # Assert (persisted)
         found = repository.find_user_by_id(user_id=output.id)
         assert found.id == output.id
@@ -54,6 +57,10 @@ class TestAddClientUseCaseIntegration:
 
         # role associada via tabela tb_user_roles
         assert found.roles == {"cliente"}
+        assert found.activation_code is not None
+        assert found.activation_code != ""
+        assert found.activation_code_expires_at is not None
+        assert found.activation_code == activation_code
 
     def test_create_client_raises_email_already_exists_when_duplicate_email(
         self, tst_db_session
@@ -70,10 +77,9 @@ class TestAddClientUseCaseIntegration:
         use_case = AddClientUseCase(
             user_repository=repository,
             password_hasher=hasher,
-            email_sender=fake_email_sender,            
+            email_sender=fake_email_sender,
         )
 
-        # mesmo email nas duas tentativas
         input1 = AddClientInputDTO(
             name="Client 1",
             email="dup.client@example.com",
@@ -92,13 +98,16 @@ class TestAddClientUseCaseIntegration:
         assert str(out1.email) == "dup.client@example.com"
         assert out1.roles == ["cliente"]
         assert out1.is_active is False
+        assert len(fake_email_sender.sent_emails) == 1
+        assert fake_email_sender.sent_emails[0][0] == "dup.client@example.com"
 
         with pytest.raises(EmailAlreadyExistsError, match="dup.client@example.com"):
             use_case.execute(input=input2)
 
-        # garante que só 1 usuário existe no banco
         users = repository.list_users()
         assert len(users) == 1
         assert users[0].email == "dup.client@example.com"
         assert users[0].roles == {"cliente"}
         assert users[0].is_active is False
+
+        assert len(fake_email_sender.sent_emails) == 1

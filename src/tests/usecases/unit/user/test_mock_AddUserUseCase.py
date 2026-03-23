@@ -3,7 +3,11 @@ from unittest.mock import MagicMock
 from uuid import UUID
 
 from domain.security.password_hasher_interface import PasswordHasherInterface
-from domain.user.user_exceptions import EmailAlreadyExistsError, RoleNotFoundError, RolesRequiredError
+from domain.user.user_exceptions import (
+    EmailAlreadyExistsError,
+    RoleNotFoundError,
+    RolesRequiredError,
+)
 from domain.user.user_repository_interface import userRepositoryInterface
 from usecases.user.add_user.add_user_dto import AddUserInputDTO, AddUserOutputDTO
 from usecases.user.add_user.add_user_usecase import AddUserUseCase
@@ -35,7 +39,7 @@ class TestAddUserUseCase:
         assert isinstance(output.id, UUID)
         assert output.name == "John Doe"
         assert str(output.email) == "john@example.com"
-        assert output.is_active is True
+        assert output.is_active is False
         assert output.roles == ["cliente"]
 
         mock_hasher.hash.assert_called_once_with("12345678")
@@ -46,8 +50,10 @@ class TestAddUserUseCase:
         assert user_sent.name == "John Doe"
         assert user_sent.email == "john@example.com"
         assert user_sent.hashed_password == "hashed-password"
-        assert user_sent.is_active is True
+        assert user_sent.is_active is False
         assert user_sent.roles == {"cliente"}
+        assert user_sent.activation_code is None
+        assert user_sent.activation_code_expires_at is None
 
     def test_mock_add_user_raises_email_already_exists(self):
         mock_repository = MagicMock(spec=userRepositoryInterface)
@@ -81,8 +87,10 @@ class TestAddUserUseCase:
         user_sent = mock_repository.add_user.call_args.kwargs["user"]
         assert user_sent.email == "john@example.com"
         assert user_sent.hashed_password == "hashed-password"
-        assert user_sent.is_active is True
+        assert user_sent.is_active is False
         assert user_sent.roles == {"cliente"}
+        assert user_sent.activation_code is None
+        assert user_sent.activation_code_expires_at is None
 
     def test_mock_add_user_raises_roles_required(self):
         mock_repository = MagicMock(spec=userRepositoryInterface)
@@ -114,9 +122,10 @@ class TestAddUserUseCase:
         user_sent = mock_repository.add_user.call_args.kwargs["user"]
         assert user_sent.email == "john@example.com"
         assert user_sent.hashed_password == "hashed-password"
-        assert user_sent.is_active is True
-        # importante: mesmo com erro, o UseCase enviou roles corretamente
-        assert user_sent.roles == {"cliente"}        
+        assert user_sent.is_active is False
+        assert user_sent.roles == {"cliente"}
+        assert user_sent.activation_code is None
+        assert user_sent.activation_code_expires_at is None
 
     def test_mock_add_user_raises_role_not_found(self):
         mock_repository = MagicMock(spec=userRepositoryInterface)
@@ -148,5 +157,7 @@ class TestAddUserUseCase:
         user_sent = mock_repository.add_user.call_args.kwargs["user"]
         assert user_sent.email == "john@example.com"
         assert user_sent.hashed_password == "hashed-password"
-        assert user_sent.is_active is True
+        assert user_sent.is_active is False
         assert user_sent.roles == {"inexistente"}
+        assert user_sent.activation_code is None
+        assert user_sent.activation_code_expires_at is None

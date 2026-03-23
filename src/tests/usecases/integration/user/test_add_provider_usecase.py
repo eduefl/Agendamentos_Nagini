@@ -1,12 +1,12 @@
-
-from usecases.user.add_user.add_prestador_dto import AddPrestadorInputDTO, AddPrestadorOutputDTO
-from usecases.user.add_user.add_prestador_usecase import AddPrestadorUseCase
-import pytest
 from uuid import UUID
+
+import pytest
 
 from domain.user.user_exceptions import EmailAlreadyExistsError
 from infrastructure.security.passlib_password_hasher import PasslibPasswordHasher
 from infrastructure.user.sqlalchemy.user_repository import userRepository
+from usecases.user.add_user.add_prestador_dto import AddPrestadorInputDTO, AddPrestadorOutputDTO
+from usecases.user.add_user.add_prestador_usecase import AddPrestadorUseCase
 
 
 class TestAddProviderUseCaseIntegration:
@@ -23,18 +23,16 @@ class TestAddProviderUseCaseIntegration:
 
         input_dto = AddPrestadorInputDTO(
             name="John Doe",
-            email="john.provieder@example.com",
+            email="john.provider@example.com",
             password="12345678",
         )
 
-        # Act
         output = use_case.execute(input=input_dto)
 
-        # Assert (output)
         assert isinstance(output, AddPrestadorOutputDTO)
         assert isinstance(output.id, UUID)
         assert output.name == "John Doe"
-        assert str(output.email) == "john.provieder@example.com"
+        assert str(output.email) == "john.provider@example.com"
         assert output.is_active is False
         assert output.roles == ["prestador"]
 
@@ -42,7 +40,7 @@ class TestAddProviderUseCaseIntegration:
         found = repository.find_user_by_id(user_id=output.id)
         assert found.id == output.id
         assert found.name == "John Doe"
-        assert found.email == "john.provieder@example.com"
+        assert found.email == "john.provider@example.com"
         assert found.is_active is False
         assert isinstance(found.hashed_password, str)
         assert found.hashed_password != ""
@@ -50,6 +48,10 @@ class TestAddProviderUseCaseIntegration:
 
         # role associada via tabela tb_user_roles
         assert found.roles == {"prestador"}
+
+        # fluxo atual do prestador não gera código de ativação
+        assert found.activation_code is None
+        assert found.activation_code_expires_at is None
 
     def test_create_provider_raises_email_already_exists_when_duplicate_email(
         self, tst_db_session
@@ -93,3 +95,5 @@ class TestAddProviderUseCaseIntegration:
         assert users[0].email == "dup.prestador@example.com"
         assert users[0].roles == {"prestador"}
         assert users[0].is_active is False
+        assert users[0].activation_code is None
+        assert users[0].activation_code_expires_at is None

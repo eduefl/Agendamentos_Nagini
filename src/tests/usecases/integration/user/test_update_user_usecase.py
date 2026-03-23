@@ -5,7 +5,7 @@ from domain.user.user_exceptions import EmailAlreadyExistsError, UserNotFoundErr
 from infrastructure.user.sqlalchemy.user_repository import userRepository
 from usecases.user.update_user.update_user_dto import UpdateUserInputDTO
 from usecases.user.update_user.update_user_usecase import updateUserUsecase
-
+from datetime import datetime, timedelta
 
 class TestUpdateUserUseCaseIntegration:
     def test_update_user_usecase(self, tst_db_session, make_user, seed_roles):
@@ -25,7 +25,6 @@ class TestUpdateUserUseCaseIntegration:
             id=user.id,
             name="Jane Doe",
             email="jane@example.com",
-            is_active=False,
         )
 
         output = use_case.execute(input_dto)
@@ -33,16 +32,13 @@ class TestUpdateUserUseCaseIntegration:
         assert output.id == user.id
         assert output.name == "Jane Doe"
         assert str(output.email) == "jane@example.com"
-        assert output.is_active is False
-
-        # se o DTO de saída tiver roles, valida também (update não deve mexer nisso)
-        if hasattr(output, "roles"):
-            assert output.roles == ["cliente"]
+        assert output.is_active is True
+        assert output.roles == ["cliente"]
 
         updated_user = user_repo.find_user_by_id(user_id=user.id)
         assert updated_user.name == "Jane Doe"
         assert updated_user.email == "jane@example.com"
-        assert updated_user.is_active is False
+        assert updated_user.is_active is True
         assert updated_user.roles == {"cliente"}
 
     def test_update_user_usecase_user_not_found(self, tst_db_session):
@@ -91,3 +87,34 @@ class TestUpdateUserUseCaseIntegration:
         assert user1_db.name == "User 1"
         assert user1_db.is_active is True
         assert user1_db.roles == {"cliente"}
+
+    def test_update_user_usecase_does_not_change_activation_fields(self, tst_db_session, make_user, seed_roles):
+        
+
+        session = tst_db_session
+        user_repo = userRepository(session=session)
+
+        expires_at = datetime.now() + timedelta(minutes=15)
+        user = make_user(
+            name="John Doe",
+            email="john@example.com",
+            is_active=False,
+            activation_code="abc12345",
+            activation_code_expires_at=expires_at,
+            roles={"cliente"},
+        )
+        user_repo.add_user(user=user)
+
+        use_case = updateUserUsecase(user_repo)
+        input_dto = UpdateUserInputDTO(
+            id=user.id,
+            name="Jane Doe",
+        )
+
+        use_case.execute(input_dto)
+
+        updated_user = user_repo.find_user_by_id(user_id=user.id)
+        assert updated_user.name == "Jane Doe"
+        assert updated_user.activation_code == "abc12345"
+        assert updated_user.activation_code_expires_at == expires_at
+        assert updated_user.is_active is False

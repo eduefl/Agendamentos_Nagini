@@ -1,10 +1,10 @@
 from unittest.mock import MagicMock
 from uuid import UUID
 
-from usecases.user.add_user.add_prestador_dto import AddPrestadorInputDTO, AddPrestadorOutputDTO
-from usecases.user.add_user.add_prestador_usecase import AddPrestadorUseCase
 from domain.security.password_hasher_interface import PasswordHasherInterface
 from domain.user.user_repository_interface import userRepositoryInterface
+from usecases.user.add_user.add_prestador_dto import AddPrestadorInputDTO, AddPrestadorOutputDTO
+from usecases.user.add_user.add_prestador_usecase import AddPrestadorUseCase
 
 
 class TestAddProviderUseCase:
@@ -49,3 +49,5 @@ class TestAddProviderUseCase:
         assert user_sent.hashed_password == "hashed-password"
         assert user_sent.is_active is False
         assert user_sent.roles == {"prestador"}
+        assert user_sent.activation_code is None
+        assert user_sent.activation_code_expires_at is None
