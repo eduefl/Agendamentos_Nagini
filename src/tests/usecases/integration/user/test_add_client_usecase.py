@@ -1,4 +1,5 @@
 
+from tests.fakes.fake_email_sender import FakeEmailSender
 import pytest
 from uuid import UUID
 
@@ -7,6 +8,7 @@ from infrastructure.security.passlib_password_hasher import PasslibPasswordHashe
 from infrastructure.user.sqlalchemy.user_repository import userRepository
 from usecases.user.add_user.add_cliente_dto import AddClientInputDTO, AddClientOutputDTO
 from usecases.user.add_user.add_cliente_usecase import AddClientUseCase
+from infrastructure.notification.smtp_email_sender import SMTPEmailSender
 
 
 class TestAddClientUseCaseIntegration:
@@ -15,10 +17,12 @@ class TestAddClientUseCaseIntegration:
         session = tst_db_session
         repository = userRepository(session=session)
         hasher = PasslibPasswordHasher()
+        fake_email_sender = FakeEmailSender()
 
         use_case = AddClientUseCase(
             user_repository=repository,
             password_hasher=hasher,
+            email_sender=fake_email_sender,            
         )
 
         input_dto = AddClientInputDTO(
@@ -58,10 +62,15 @@ class TestAddClientUseCaseIntegration:
         session = tst_db_session
         repository = userRepository(session=session)
         hasher = PasslibPasswordHasher()
+        fake_email_sender = FakeEmailSender()
+
+        
+
 
         use_case = AddClientUseCase(
             user_repository=repository,
             password_hasher=hasher,
+            email_sender=fake_email_sender,            
         )
 
         # mesmo email nas duas tentativas

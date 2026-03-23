@@ -11,6 +11,8 @@ services:
       - "5678:5678" # Debugy Debugging Port
     environment:
       - CONNECTION=${CONNECTION}
+      - EMAIL_SENDER_ADDRESS=${EMAIL_SENDER_ADDRESS}
+      - EMAIL_SENDER_PASSWORD=${EMAIL_SENDER_PASSWORD}      
     # command: uvicorn infrastructure.api.main:app --host 0.0.0.0 --port 8000 --reload
     # command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "-m", "uvicorn", "infrastructure.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
     command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "-m", "uvicorn", "infrastructure.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

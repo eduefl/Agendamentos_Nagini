@@ -1,8 +1,8 @@
 from uuid import UUID
 
+from infrastructure.api.factories.make_add_client_usecase import make_add_client_usecase
 from usecases.user.add_user.add_prestador_dto import AddPrestadorInputDTO
 from usecases.user.add_user.add_prestador_usecase import AddPrestadorUseCase
-from usecases.user.add_user.add_cliente_usecase import AddClientUseCase
 from usecases.user.add_user.add_cliente_dto import AddClientInputDTO
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -63,13 +63,8 @@ def add_user(request: AddUserInputDTO, session: Session = Depends(get_session)):
 @router.post("/clients", status_code=status.HTTP_201_CREATED)
 def add_client(request: AddClientInputDTO, session: Session = Depends(get_session)):
     try:
-        user_repository = userRepository(session=session)
-        password_hasher = PasslibPasswordHasher()
 
-        usecase = AddClientUseCase(
-            user_repository=user_repository,
-            password_hasher=password_hasher,
-        )
+        usecase = make_add_client_usecase(session)
 
         output = usecase.execute(input=request)
 

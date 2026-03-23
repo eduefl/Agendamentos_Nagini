@@ -13,6 +13,17 @@ from infrastructure.api.database import Base
 from infrastructure.user.sqlalchemy.user_model import RoleModel
 
 
+# import smtplib
+
+# @pytest.fixture(autouse=True)
+# def patch_smtp(monkeypatch):
+#     class DummySMTP:
+#         def __enter__(self): return self
+#         def __exit__(self, exc_type, exc_val, exc_tb): pass
+#         def login(self, *args, **kwargs): return None
+#         def send_message(self, *args, **kwargs): return None
+#     monkeypatch.setattr(smtplib, "SMTP_SSL", lambda *a, **kw: DummySMTP())
+
 @pytest.fixture
 def make_user():
     def _make_user(**overrides):

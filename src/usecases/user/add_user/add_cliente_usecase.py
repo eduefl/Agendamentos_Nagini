@@ -1,5 +1,7 @@
+import secrets
 from uuid import uuid4
 
+from domain.notification.email_sender_interface import EmailSenderInterface
 from domain.__seedwork.use_case_interface import UseCaseInterface
 from domain.security.password_hasher_interface import PasswordHasherInterface
 from domain.user.user_entity import User
@@ -11,9 +13,11 @@ class AddClientUseCase(UseCaseInterface):
         self,
         user_repository: userRepositoryInterface,
         password_hasher: PasswordHasherInterface,
+        email_sender: EmailSenderInterface,          # NOVO parâmetro        
     ):
         self.user_repository = user_repository
         self.password_hasher = password_hasher
+        self.email_sender = email_sender             # Armazena para uso        
 
     def execute(self, input: AddClientInputDTO) -> AddClientOutputDTO:
         # 1-Crio o hash da senha usando o PasswordHasherInterface com base na senha
@@ -29,8 +33,15 @@ class AddClientUseCase(UseCaseInterface):
         )
 
         # 3-Salva o usuário usando o userRepositoryInterface
-        self.user_repository.add_user(user=user)
+        try:
+            # activation_code = str(uuid4())[:8]  # ou gere conforme sua política
+            activation_code = secrets.token_hex(4)  # 8 chars hex
+            self.email_sender.send_activation_email(user.email, activation_code)
+        except Exception as e:
+            raise e
 
+        self.user_repository.add_user(user=user)
+                
         # 4-Retorna um AddClientOutputDTO com os dados do usuário criado (exceto hashed_password)
         return AddClientOutputDTO(
             id=user.id,
