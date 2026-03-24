@@ -16,7 +16,8 @@ class TestAddClientUseCase:
         mock_hasher = MagicMock(spec=PasswordHasherInterface)
         mock_email_sender = MagicMock(spec=EmailSenderInterface)
 
-        mock_hasher.hash.return_value = "hashed-password"
+        # mock_hasher.hash.return_value = "hashed-password"
+        mock_hasher.hash.side_effect = lambda value: f"hashed::{value}"
 
         use_case = AddClientUseCase(
             user_repository=mock_repository,
@@ -42,7 +43,9 @@ class TestAddClientUseCase:
         assert output.roles == ["cliente"]
 
         # Assert (collaborators)
-        mock_hasher.hash.assert_called_once_with("12345678")
+
+        assert mock_hasher.hash.call_count == 2
+        mock_hasher.hash.assert_any_call("12345678")
         mock_repository.add_user.assert_called_once()
         mock_email_sender.send_activation_email.assert_called_once()
 
@@ -51,7 +54,7 @@ class TestAddClientUseCase:
         assert user_sent.id == output.id
         assert user_sent.name == "John Doe"
         assert user_sent.email == "john@example.com"
-        assert user_sent.hashed_password == "hashed-password"
+        assert user_sent.hashed_password == "hashed::12345678"
         assert user_sent.is_active is False
         assert user_sent.roles == {"cliente"}
         assert user_sent.activation_code is not None
@@ -60,7 +63,8 @@ class TestAddClientUseCase:
 
         args = mock_email_sender.send_activation_email.call_args.args
         assert args[0] == "john@example.com"
-        assert args[1] == user_sent.activation_code
+        assert user_sent.activation_code != args[1]
+        assert user_sent.activation_code.startswith("hashed::")
 
     def test_mock_create_client_raises_when_email_delivery_fails_after_persisting_user(self):
         # Arrange

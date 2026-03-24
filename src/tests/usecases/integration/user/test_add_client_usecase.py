@@ -60,7 +60,8 @@ class TestAddClientUseCaseIntegration:
         assert found.activation_code is not None
         assert found.activation_code != ""
         assert found.activation_code_expires_at is not None
-        assert found.activation_code == activation_code
+        # assert found.activation_code == activation_code
+        assert hasher.verify(activation_code,found.activation_code)
 
     def test_create_client_raises_email_already_exists_when_duplicate_email(
         self, tst_db_session

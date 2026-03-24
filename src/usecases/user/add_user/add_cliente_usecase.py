@@ -38,7 +38,7 @@ class AddClientUseCase(UseCaseInterface):
         activation_code_expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
 
         user.set_activation_code(
-            code=activation_code,
+            code=self.password_hasher.hash(activation_code),
             expires_at=activation_code_expires_at,
         )
 
