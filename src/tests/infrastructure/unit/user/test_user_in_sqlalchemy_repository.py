@@ -80,12 +80,60 @@ class TestUserSqlalchemyRepository:
         assert found.activation_code_expires_at == user.activation_code_expires_at
         assert found.roles == {"cliente"}
 
+
     def test_find_user_by_id_raises_when_not_found(self, tst_db_session):
         session = tst_db_session
         repo = userRepository(session=session)
 
         with pytest.raises(UserNotFoundError):
             repo.find_user_by_id(user_id=uuid4())
+
+    def test_find_user_by_email_returns_domain_entity(self, make_user, tst_db_session, seed_roles):
+        session = tst_db_session
+        repo = userRepository(session=session)
+
+        expires_at = datetime.now() + timedelta(minutes=15)
+        user = make_user(roles={"cliente"}, 
+                         activation_code="abc12345", 
+                         activation_code_expires_at=expires_at,
+                         email = "test@test.com.ts")
+        row = UserModel(
+            id=user.id,
+            name=user.name,
+            email=user.email,
+            hashed_password=user.hashed_password,
+            is_active=user.is_active,
+            activation_code=user.activation_code,
+            activation_code_expires_at=user.activation_code_expires_at,
+        )
+        row.roles.extend(
+            [
+                repo._get_role_by_name("cliente"),
+            ]
+        )
+        
+        session.add(row)
+        session.commit()
+
+        found = repo.find_user_by_email(email=user.email)
+
+        assert found.id == user.id
+        assert found.name == user.name
+        assert found.email == user.email
+        assert found.hashed_password == user.hashed_password
+        assert found.is_active == user.is_active
+        assert found.activation_code == user.activation_code
+        assert found.activation_code_expires_at == user.activation_code_expires_at
+        assert found.roles == {"cliente"}
+
+
+
+
+    def test_find_user_by_email_raises_when_not_found(self, tst_db_session):
+        session = tst_db_session
+        repo = userRepository(session=session)
+        with pytest.raises(UserNotFoundError):
+            repo.find_user_by_email("test@test.com")
 
     def test_list_users_returns_all_users(self, make_user, tst_db_session, seed_roles):
         session = tst_db_session

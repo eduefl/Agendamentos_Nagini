@@ -83,6 +83,13 @@ class userRepository(userRepositoryInterface):
             raise UserNotFoundError(user_id)
 
         return self._to_entity(user_in_db)
+    
+    def find_user_by_email(self, email: str) -> User:        
+        user_in_db = self.session.query(UserModel).filter(UserModel.email == email.strip().lower()).one_or_none()
+        if not user_in_db:
+            raise UserNotFoundError(email, attribute="email")
+
+        return self._to_entity(user_in_db)
 
     def list_users(self) -> List[User]:
         users_in_db: List[UserModel] = self.session.query(UserModel).all()

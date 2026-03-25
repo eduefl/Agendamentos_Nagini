@@ -1,5 +1,8 @@
 from uuid import UUID
 
+from infrastructure.api.routers._error_mapper import raise_http_from_error
+from usecases.user.activate_user.activate_user_usecase import ActivateUserUseCase
+from usecases.user.activate_user.activate_user_dto import ActivateUserInputDTO
 from infrastructure.api.factories.make_add_client_usecase import make_add_client_usecase
 from usecases.user.add_user.add_prestador_dto import AddPrestadorInputDTO
 from usecases.user.add_user.add_prestador_usecase import AddPrestadorUseCase
@@ -8,9 +11,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from domain.user.user_exceptions import (
+    ActivationCodeExpiredError,
     EmailAlreadyExistsError,
+    InvalidActivationCodeError,
     RoleNotFoundError,
     RolesRequiredError,
+    UserAlreadyActiveError,
     UserNotFoundError,
 )
 from infrastructure.api.database import get_session
@@ -186,3 +192,31 @@ def update_user(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except HTTPException as e:
         raise e
+    
+@router.post("/activate/", status_code=status.HTTP_200_OK)
+def activate_user(request: ActivateUserInputDTO, 
+                  session: Session = Depends(get_session)):
+    try:
+        user_repository = userRepository(session=session)
+        password_hasher = PasslibPasswordHasher()
+
+        usecase = ActivateUserUseCase(
+            user_repository=user_repository,
+            password_hasher=password_hasher,
+        )
+
+        output = usecase.execute(input=request)
+
+        output_json = UserPresenter.toJSON(output)
+        output_xml = UserPresenter.toXml(output)
+        return {"json": output_json, "xml": output_xml}
+    except UserNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except UserAlreadyActiveError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except ActivationCodeExpiredError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    except InvalidActivationCodeError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    except Exception as e:
+        raise_http_from_error(e)

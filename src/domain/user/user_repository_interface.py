@@ -16,6 +16,10 @@ class userRepositoryInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def find_user_by_email(self, email: str) -> User:
+        raise NotImplementedError
+
+    @abstractmethod
     def update_user(self, user: User) -> None:
         raise NotImplementedError
 

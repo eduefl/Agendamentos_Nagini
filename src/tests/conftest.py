@@ -12,6 +12,10 @@ from infrastructure.api.database import Base
 # Se RoleModel estiver no mesmo arquivo do UserModel:
 from infrastructure.user.sqlalchemy.user_model import RoleModel
 
+from fastapi.testclient import TestClient
+
+from infrastructure.api.main import app
+from infrastructure.api.database import get_session
 
 # import smtplib
 
@@ -149,3 +153,15 @@ def seed_roles(tst_db_session):
 
     tst_db_session.commit()
     return None
+
+@pytest.fixture
+def client(tst_db_session):
+    def override_get_session():
+        yield tst_db_session
+
+    app.dependency_overrides[get_session] = override_get_session
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    app.dependency_overrides.clear()
