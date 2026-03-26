@@ -1,5 +1,9 @@
+import secrets
+from datetime import datetime, timedelta, timezone
+
 from uuid import uuid4
 
+from domain.notification.email_sender_interface import EmailSenderInterface
 from domain.__seedwork.use_case_interface import UseCaseInterface
 from domain.security.password_hasher_interface import PasswordHasherInterface
 from domain.user.user_entity import User
@@ -11,9 +15,11 @@ class AddPrestadorUseCase(UseCaseInterface):
         self,
         user_repository: userRepositoryInterface,
         password_hasher: PasswordHasherInterface,
+        email_sender: EmailSenderInterface,
     ):
         self.user_repository = user_repository
         self.password_hasher = password_hasher
+        self.email_sender = email_sender
 
     def execute(self, input: AddPrestadorInputDTO) -> AddPrestadorOutputDTO:
         # 1-Crio o hash da senha usando o PasswordHasherInterface com base na senha
@@ -28,8 +34,18 @@ class AddPrestadorUseCase(UseCaseInterface):
             roles={"prestador"}
         )
 
+        activation_code = secrets.token_hex(4)
+        activation_code_expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+
+        user.set_activation_code(
+            code=self.password_hasher.hash(activation_code),
+            expires_at=activation_code_expires_at,
+        )
+
         # 3-Salva o usuário usando o userRepositoryInterface
         self.user_repository.add_user(user=user)
+
+        self.email_sender.send_activation_email(user.email, activation_code)
 
         # 4-Retorna um AddPrestadorOutputDTO com os dados do usuário criado (exceto hashed_password)
         return AddPrestadorOutputDTO(
@@ -39,3 +55,4 @@ class AddPrestadorUseCase(UseCaseInterface):
             is_active=user.is_active,
             roles=sorted(list(user.roles)),            
         )
+    

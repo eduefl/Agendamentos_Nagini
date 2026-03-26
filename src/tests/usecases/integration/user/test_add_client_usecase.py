@@ -40,12 +40,12 @@ class TestAddClientUseCaseIntegration:
         assert output.is_active is False
         assert output.roles == ["cliente"]
 
+        # Assert (persisted)
         assert len(fake_email_sender.sent_emails) == 1
         to_email, activation_code = fake_email_sender.sent_emails[0]
         assert to_email == "john.client@example.com"
         assert activation_code is not None
         assert activation_code != ""
-        # Assert (persisted)
         found = repository.find_user_by_id(user_id=output.id)
         assert found.id == output.id
         assert found.name == "John Doe"
@@ -110,5 +110,6 @@ class TestAddClientUseCaseIntegration:
         assert users[0].email == "dup.client@example.com"
         assert users[0].roles == {"cliente"}
         assert users[0].is_active is False
-
+        assert users[0].activation_code is not None
+        assert users[0].activation_code_expires_at is not None
         assert len(fake_email_sender.sent_emails) == 1

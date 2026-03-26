@@ -1,9 +1,9 @@
 from uuid import UUID
 
+from infrastructure.api.factories import make_add_client_usecase, make_add_provider_usecase
 from infrastructure.api.routers._error_mapper import raise_http_from_error
 from usecases.user.activate_user.activate_user_usecase import ActivateUserUseCase
 from usecases.user.activate_user.activate_user_dto import ActivateUserInputDTO
-from infrastructure.api.factories.make_add_client_usecase import make_add_client_usecase
 from usecases.user.add_user.add_prestador_dto import AddPrestadorInputDTO
 from usecases.user.add_user.add_prestador_usecase import AddPrestadorUseCase
 from usecases.user.add_user.add_cliente_dto import AddClientInputDTO
@@ -54,16 +54,8 @@ def add_user(request: AddUserInputDTO, session: Session = Depends(get_session)):
         output_xml = UserPresenter.toXml(output)
         return {"json": output_json, "xml": output_xml}
 
-    except EmailAlreadyExistsError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    except RolesRequiredError as e:
-        # normalmente seria 422, mas como é regra de domínio, 400 também é aceitável.
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except RoleNotFoundError as e:
-        # role inválida/inesperada no input
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except HTTPException as e:
-        raise e
+    except Exception as e:
+        raise_http_from_error(e)
 
 
 @router.post("/clients", status_code=status.HTTP_201_CREATED)
@@ -78,27 +70,13 @@ def add_client(request: AddClientInputDTO, session: Session = Depends(get_sessio
         output_xml = UserPresenter.toXml(output)
         return {"json": output_json, "xml": output_xml}
 
-    except EmailAlreadyExistsError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    except RolesRequiredError as e:
-        # normalmente seria 422, mas como é regra de domínio, 400 também é aceitável.
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except RoleNotFoundError as e:
-        # role inválida/inesperada no input
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except HTTPException as e:
-        raise e
+    except Exception as e:
+        raise_http_from_error(e)
 
 @router.post("/providers", status_code=status.HTTP_201_CREATED)
 def add_prestador(request: AddPrestadorInputDTO, session: Session = Depends(get_session)):   
     try:
-        user_repository = userRepository(session=session)
-        password_hasher = PasslibPasswordHasher()
-
-        usecase = AddPrestadorUseCase(
-            user_repository=user_repository,
-            password_hasher=password_hasher,
-        )
+        usecase = make_add_provider_usecase(session)
 
         output = usecase.execute(input=request)
 
@@ -106,16 +84,8 @@ def add_prestador(request: AddPrestadorInputDTO, session: Session = Depends(get_
         output_xml = UserPresenter.toXml(output)
         return {"json": output_json, "xml": output_xml}
 
-    except EmailAlreadyExistsError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    except RolesRequiredError as e:
-        # normalmente seria 422, mas como é regra de domínio, 400 também é aceitável.
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except RoleNotFoundError as e:
-        # role inválida/inesperada no input
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except HTTPException as e:
-        raise e
+    except Exception as e:
+        raise_http_from_error(e)
 
 @router.get("/{user_id}", status_code=status.HTTP_200_OK)
 def find_user_by_id(user_id: UUID, session: Session = Depends(get_session)):
@@ -133,10 +103,8 @@ def find_user_by_id(user_id: UUID, session: Session = Depends(get_session)):
         output_xml = UserPresenter.toXml(output)
         return {"json": output_json, "xml": output_xml}
 
-    except UserNotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except HTTPException as e:
-        raise e
+    except Exception as e:
+        raise_http_from_error(e)
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
@@ -151,8 +119,8 @@ def list_users(session: Session = Depends(get_session)):
         output_xml = UserPresenter.toXml(output)
         return {"json": output_json, "xml": output_xml}
 
-    except HTTPException as e:
-        raise e
+    except Exception as e:
+        raise_http_from_error(e)
 
 
 @router.put("/{user_id}", status_code=status.HTTP_200_OK)
@@ -186,12 +154,8 @@ def update_user(
         output_xml = UserPresenter.toXml(output)
         return {"json": output_json, "xml": output_xml}
 
-    except UserNotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except EmailAlreadyExistsError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    except HTTPException as e:
-        raise e
+    except Exception as e:
+        raise_http_from_error(e)
     
 @router.post("/activate/", status_code=status.HTTP_200_OK)
 def activate_user(request: ActivateUserInputDTO, 
@@ -210,13 +174,5 @@ def activate_user(request: ActivateUserInputDTO,
         output_json = UserPresenter.toJSON(output)
         output_xml = UserPresenter.toXml(output)
         return {"json": output_json, "xml": output_xml}
-    except UserNotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except UserAlreadyActiveError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    except ActivationCodeExpiredError as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-    except InvalidActivationCodeError as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except Exception as e:
         raise_http_from_error(e)
