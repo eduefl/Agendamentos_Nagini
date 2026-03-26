@@ -1,24 +1,15 @@
 from uuid import UUID
 
-from infrastructure.api.factories import make_add_client_usecase, make_add_provider_usecase
+from infrastructure.api.factories.make_add_client_usecase import make_add_client_usecase
+from infrastructure.api.factories.make_add_provider_usecase import make_add_provider_usecase
 from infrastructure.api.routers._error_mapper import raise_http_from_error
 from usecases.user.activate_user.activate_user_usecase import ActivateUserUseCase
 from usecases.user.activate_user.activate_user_dto import ActivateUserInputDTO
 from usecases.user.add_user.add_prestador_dto import AddPrestadorInputDTO
-from usecases.user.add_user.add_prestador_usecase import AddPrestadorUseCase
 from usecases.user.add_user.add_cliente_dto import AddClientInputDTO
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from domain.user.user_exceptions import (
-    ActivationCodeExpiredError,
-    EmailAlreadyExistsError,
-    InvalidActivationCodeError,
-    RoleNotFoundError,
-    RolesRequiredError,
-    UserAlreadyActiveError,
-    UserNotFoundError,
-)
 from infrastructure.api.database import get_session
 from infrastructure.presenters.user_presenter import UserPresenter
 from infrastructure.security.passlib_password_hasher import PasslibPasswordHasher

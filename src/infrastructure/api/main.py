@@ -1,16 +1,14 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-from infrastructure.api.database import create_tables, SessionLocal
-from infrastructure.api.routers import user_routers, task_routers
+from infrastructure.api.database import SessionLocal, create_tables
+from infrastructure.api.routers import task_routers, user_routers
 from infrastructure.user.sqlalchemy.seed_roles import seed_roles
 
-app = FastAPI()
 
-app.include_router(user_routers.router)
-app.include_router(task_routers.router)
-
-@app.on_event("startup")
-def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     # 1) garante tabelas
     create_tables()
 
@@ -21,4 +19,11 @@ def on_startup():
     finally:
         db.close()
 
-        
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
+app.include_router(user_routers.router)
+app.include_router(task_routers.router)
+
