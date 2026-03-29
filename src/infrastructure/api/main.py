@@ -6,6 +6,11 @@ from infrastructure.api.database import SessionLocal, create_tables
 from infrastructure.api.routers import task_routers, user_routers
 from infrastructure.user.sqlalchemy.seed_roles import seed_roles
 
+# importa os models para registrar no SQLAlchemy
+from infrastructure.user.sqlalchemy.user_model import UserModel, RoleModel
+from infrastructure.service.sqlalchemy.service_model import ServiceModel
+from infrastructure.service.sqlalchemy.provider_service_model import ProviderServiceModel
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

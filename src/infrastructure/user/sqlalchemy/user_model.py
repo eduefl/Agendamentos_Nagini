@@ -51,3 +51,10 @@ class UserModel(Base):
         back_populates="users",
         lazy="selectin",
     )
+
+    provider_services = relationship(
+        "ProviderServiceModel",
+        back_populates="provider",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
