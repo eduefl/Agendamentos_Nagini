@@ -18,3 +18,7 @@ class ConflictError(DomainError):
 class ForbiddenError(DomainError):
     def __init__(self, message: str = "Forbidden error"):
         super().__init__(message)
+
+class UnauthorizedError (DomainError):
+    def __init__(self, message: str = "Unauthorized error"):
+        super().__init__(message)

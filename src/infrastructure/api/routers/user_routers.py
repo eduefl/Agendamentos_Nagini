@@ -1,7 +1,10 @@
 from uuid import UUID
-
+from fastapi.security import OAuth2PasswordRequestForm
+from usecases.user.authenticate_user.authenticate_user_dto import AuthenticateUserInputDTO, AuthenticateUserOutputDTO
 from infrastructure.api.factories.make_add_client_usecase import make_add_client_usecase
 from infrastructure.api.factories.make_add_provider_usecase import make_add_provider_usecase
+from infrastructure.api.factories.make_authenticate_user_usecase import make_authenticate_user_usecase
+
 from infrastructure.api.routers._error_mapper import raise_http_from_error
 from usecases.user.activate_user.activate_user_usecase import ActivateUserUseCase
 from usecases.user.activate_user.activate_user_dto import ActivateUserInputDTO
@@ -165,5 +168,24 @@ def activate_user(request: ActivateUserInputDTO,
         output_json = UserPresenter.toJSON(output)
         output_xml = UserPresenter.toXml(output)
         return {"json": output_json, "xml": output_xml}
+    except Exception as e:
+        raise_http_from_error(e)
+
+
+@router.post("/login", response_model=AuthenticateUserOutputDTO, status_code=status.HTTP_200_OK)
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    session: Session = Depends(get_session),
+):
+    try:
+        usecase = make_authenticate_user_usecase(session)
+
+        input_dto = AuthenticateUserInputDTO(
+            email=form_data.username,   # aqui o "username" do OAuth2 vira seu email
+            password=form_data.password,
+        )
+
+        output = usecase.execute(input=input_dto)
+        return output
     except Exception as e:
         raise_http_from_error(e)

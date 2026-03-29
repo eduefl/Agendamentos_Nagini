@@ -1,5 +1,5 @@
 from uuid import UUID
-from domain.__seedwork.exceptions import ForbiddenError, NotFoundError, ConflictError, ValidationError
+from domain.__seedwork.exceptions import ForbiddenError, NotFoundError, ConflictError, UnauthorizedError, ValidationError
 
 class UserNotFoundError(NotFoundError):
     def __init__(self, value: str, attribute: str = "id"):
@@ -39,3 +39,8 @@ class UserAlreadyActiveError(ConflictError):
     def __init__(self, email: str):
         super().__init__(f"User with email {email} is already active")
         self.email = email
+
+class InvalidCredentialsError(UnauthorizedError):
+    def __init__(self):
+        super().__init__("Invalid email or password")
+

@@ -12,7 +12,10 @@ services:
     environment:
       - CONNECTION=${CONNECTION}
       - EMAIL_SENDER_ADDRESS=${EMAIL_SENDER_ADDRESS}
-      - EMAIL_SENDER_PASSWORD=${EMAIL_SENDER_PASSWORD}      
+      - EMAIL_SENDER_PASSWORD=${EMAIL_SENDER_PASSWORD}   
+      - CHAVE_SECRETA=${CHAVE_SECRETA}
+      - ALGORITMO=${ALGORITMO}
+      - TEMPO_DE_EXPIRACAO_TOKEN_DE_ACESSO=${TEMPO_DE_EXPIRACAO_TOKEN_DE_ACESSO}         
     # command: uvicorn infrastructure.api.main:app --host 0.0.0.0 --port 8000 --reload
     # command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "-m", "uvicorn", "infrastructure.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
     command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "-m", "uvicorn", "infrastructure.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
