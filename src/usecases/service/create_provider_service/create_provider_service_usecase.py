@@ -8,7 +8,7 @@ from domain.service.provider_service_repository_interface import (
     ProviderServiceRepositoryInterface,
 )
 from domain.service.service_entity import Service
-from domain.service.service_exceptions import ProviderServiceAlreadyExistsError
+from domain.service.service_exceptions import ProviderServiceAlreadyExistsError, ServiceNotFoundError
 from domain.service.service_repository_interface import ServiceRepositoryInterface
 from usecases.service.create_provider_service.create_provider_service_dto import (
     CreateProviderServiceInputDTO,
@@ -38,8 +38,10 @@ class CreateProviderServiceUseCase:
             roles = {role.lower() for role in user.roles}
             if "prestador" not in roles:
                 raise ForbiddenError("Apenas usuários com perfil prestador podem acessar esta operação")
-
-            service = self.service_repository.find_by_name(input.name)
+            if input.service_id:
+                service = self.service_repository.find_by_id(input.service_id)
+            else:
+                service = self.service_repository.find_by_name(input.name)
 
             if service is None:
                 service = Service(
