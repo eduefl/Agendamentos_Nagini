@@ -13,6 +13,16 @@ class CreateProviderServiceInputDTO(BaseModel):
     description: Optional[str] = None
     price: Decimal
 
+    @root_validator(pre=True)
+    def normalize_empty_strings(cls, values):
+        if values.get("service_id") == "":
+            values["service_id"] = None
+
+        if values.get("name") == "":
+            values["name"] = None
+
+        return values
+
     @root_validator
     def validate_name_xor_service_id(cls, values):
         name = values.get("name")
@@ -22,9 +32,7 @@ class CreateProviderServiceInputDTO(BaseModel):
         has_service_id = service_id is not None
 
         if has_name == has_service_id:
-            raise ValueError(
-                "Informe exatamente um entre 'name' e 'service_id'."
-            )
+            raise ValueError("Informe um 'name' para um servico ou um 'service_id' de um servico ja cadastrado.")
 
         if has_name:
             values["name"] = name.strip()

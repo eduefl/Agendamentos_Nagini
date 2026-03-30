@@ -8,7 +8,7 @@ from domain.service.provider_service_repository_interface import (
     ProviderServiceRepositoryInterface,
 )
 from domain.service.service_entity import Service
-from domain.service.service_exceptions import ProviderServiceAlreadyExistsError, ServiceNotFoundError
+from domain.service.service_exceptions import ProviderServiceAlreadyExistsError
 from domain.service.service_repository_interface import ServiceRepositoryInterface
 from usecases.service.create_provider_service.create_provider_service_dto import (
     CreateProviderServiceInputDTO,

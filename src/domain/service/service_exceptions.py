@@ -8,4 +8,6 @@ class ServiceNotFoundError(NotFoundError):
 
 class ProviderServiceAlreadyExistsError(ConflictError):
     def __init__(self):
-        super().__init__("Provider already offers this service")
+        super().__init__("This Provider already offers this service")
+
+

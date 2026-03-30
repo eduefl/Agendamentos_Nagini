@@ -3,7 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from infrastructure.api.database import SessionLocal, create_tables
-from infrastructure.api.routers import task_routers, user_routers
+from infrastructure.api.routers import task_routers, user_routers, service_routers
+
 from infrastructure.user.sqlalchemy.seed_roles import seed_roles
 
 # importa os models para registrar no SQLAlchemy
@@ -31,4 +32,4 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(user_routers.router)
 app.include_router(task_routers.router)
-
+app.include_router(service_routers.router)

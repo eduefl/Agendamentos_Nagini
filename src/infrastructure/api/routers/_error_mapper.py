@@ -1,3 +1,4 @@
+from domain.service.service_exceptions import ProviderServiceAlreadyExistsError, ServiceNotFoundError
 from domain.security.security_exceptions import (
     ExpiredTokenError,
     InvalidTokenError,
@@ -22,19 +23,16 @@ def raise_http_from_error(e: Exception) -> None:
         raise e
     if isinstance(e, (InvalidCredentialsError, ExpiredTokenError, InvalidTokenError)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-    if isinstance(e, (UserNotFoundError, TaskNotFoundError)):
+    if isinstance(e, (UserNotFoundError, TaskNotFoundError, ServiceNotFoundError )):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    if isinstance(e, (UserAlreadyActiveError, EmailAlreadyExistsError)):
+    if isinstance(e, (UserAlreadyActiveError, EmailAlreadyExistsError,ProviderServiceAlreadyExistsError)):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     if isinstance(e, ActivationCodeExpiredError):
         raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(e))
     if isinstance(e, (InvalidActivationCodeError, RoleNotFoundError)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
     if isinstance(e, (ValueError, RolesRequiredError)):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))# 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
 
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
