@@ -1,3 +1,5 @@
+from sqlalchemy.exc import IntegrityError
+from sre_constants import IN
 import pytest
 from datetime import datetime
 from decimal import Decimal
@@ -94,8 +96,8 @@ class TestProviderServiceSqlalchemyRepository:
 
         assert len(result) == 2
         assert result[0].provider_id == provider_id
-        assert result[0].price == Decimal(150.00)
-        assert result[1].price == Decimal(200.00)
+        assert result[0].price == Decimal("150.00")
+        assert result[1].price == Decimal("200.00")
         assert result[0].created_at is not None
         assert result[1].created_at is not None
         assert result[0].created_at <= datetime.utcnow()
@@ -123,5 +125,5 @@ class TestProviderServiceSqlalchemyRepository:
 
         repository.create_provider_service(provider_service1)
 
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             repository.create_provider_service(provider_service2)
