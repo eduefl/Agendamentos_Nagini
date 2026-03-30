@@ -12,7 +12,7 @@ class Service:
         self.name = name
         self.description = description
         if self.validate():
-            self.name = name.strip()
+            self.name = name.strip().lower()
 
     def validate(self) -> bool:
         if not isinstance(self.id, UUID):

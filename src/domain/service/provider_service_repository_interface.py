@@ -2,19 +2,20 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from domain.service.provider_service_entity import ProviderService
+from typing import Optional
 
 
 class ProviderServiceRepositoryInterface(ABC):
+    @abstractmethod
+    def create_provider_service(self, provider_service: ProviderService) -> None:
+        raise NotImplementedError
+
     @abstractmethod
     def find_by_provider_and_service(
         self,
         provider_id: UUID,
         service_id: UUID,
-    ) -> ProviderService | None:
-        raise NotImplementedError
-
-    @abstractmethod
-    def add(self, provider_service: ProviderService) -> None:
+    ) -> Optional[ProviderService]:
         raise NotImplementedError
 
     @abstractmethod

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -7,6 +8,9 @@ from sqlalchemy.pool import StaticPool
 
 from domain.task.task_entity import Task
 from domain.user.user_entity import User
+from domain.service.service_entity import Service
+from domain.service.provider_service_entity import ProviderService
+
 from infrastructure.api.database import Base
 
 # Se RoleModel estiver no mesmo arquivo do UserModel:
@@ -64,6 +68,37 @@ def make_task():
         return Task(**data)
 
     return _make_task
+
+
+@pytest.fixture
+def make_service():
+    def _make_service(**overrides):
+        data = {
+            "id": uuid4(),
+            "name": "Service 1",
+            "description": "Description for Service",
+        }
+        data.update(overrides)
+        return Service(**data)
+
+    return _make_service
+
+
+@pytest.fixture
+def make_provider_service():
+    def _make_provider_service(**overrides):
+        data = {
+            "id": uuid4(),
+            "provider_id": uuid4(),
+            "service_id": uuid4(),
+            "price": Decimal("100.00"),
+            "active": True,
+            "created_at": None,  # Deixe como None para não forçar regra do repo em testes de entidade            
+        }
+        data.update(overrides)
+        return ProviderService(**data)
+
+    return _make_provider_service
 
 # The scope parameter defines the lifespan of the fixture. 
 # In this case, scope="session" means that the fixture will be created once per test session. 
