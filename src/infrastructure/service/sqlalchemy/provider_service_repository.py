@@ -1,12 +1,17 @@
 from typing import Optional
 from uuid import UUID
+
+from domain.service.provider_service_list_item_read_model import ProviderServiceListItem
+from infrastructure.service.sqlalchemy.service_model import ServiceModel
 from sqlalchemy.orm import Session
 
 from domain.service.provider_service_entity import ProviderService
 from domain.service.provider_service_repository_interface import (
     ProviderServiceRepositoryInterface,
 )
-from infrastructure.service.sqlalchemy.provider_service_model import ProviderServiceModel
+from infrastructure.service.sqlalchemy.provider_service_model import (
+    ProviderServiceModel,
+)
 
 
 class ProviderServiceRepository(ProviderServiceRepositoryInterface):
@@ -27,8 +32,8 @@ class ProviderServiceRepository(ProviderServiceRepositoryInterface):
 
     def find_by_provider_and_service(
         self,
-        provider_id:UUID,
-        service_id:UUID,
+        provider_id: UUID,
+        service_id: UUID,
     ) -> Optional[ProviderService]:
         provider_service_in_db = (
             self.session.query(ProviderServiceModel)
@@ -44,15 +49,27 @@ class ProviderServiceRepository(ProviderServiceRepositoryInterface):
 
         return self._to_entity(provider_service_in_db)
 
-
-    def list_by_provider_id(self, provider_id: UUID) -> list[ProviderService]:
-        providers_services_in_db = (
-            self.session.query(ProviderServiceModel)
+    def list_by_provider_id(self, provider_id: UUID) -> list[ProviderServiceListItem]:
+        rows = (
+            self.session.query(ProviderServiceModel, ServiceModel)
+            .join(ServiceModel, ServiceModel.id == ProviderServiceModel.service_id)
             .filter(ProviderServiceModel.provider_id == provider_id)
             .all()
         )
 
-        return [self._to_entity(provider_service_in_db) for provider_service_in_db in providers_services_in_db]
+        return [
+            ProviderServiceListItem(
+                id=provider_service.id,
+                provider_id=provider_service.provider_id,
+                service_id=provider_service.service_id,
+                service_name=service.name,
+                service_description=service.description,
+                price=provider_service.price,
+                active=provider_service.active,
+                created_at=provider_service.created_at,
+            )
+            for provider_service, service in rows
+        ]
 
     @staticmethod
     def _to_entity(model: ProviderServiceModel) -> ProviderService:

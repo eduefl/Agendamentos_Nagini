@@ -16,7 +16,7 @@ class TestUser:
             name=user_name,
             email=user_email,
             hashed_password=user_hashed_password,
-            roles = {'prestador'}
+            roles={"prestador"},
         )
 
         assert user.id == user_id
@@ -25,7 +25,7 @@ class TestUser:
         assert user.hashed_password == user_hashed_password
         assert user.is_active is False
         assert user.tasks == []
-        assert user.roles == {'prestador'}  
+        assert user.roles == {"prestador"}
 
     def test_user_id_validation(self, make_user):
         with pytest.raises(ValueError, match="ID must be a valid UUID."):
@@ -123,8 +123,6 @@ class TestUser:
                 activation_code_expires_at=datetime.now(),
             )
 
-
-
     def test_set_activation_code(self, make_user):
         user = make_user()
         expires_at = datetime.now() + timedelta(minutes=15)
@@ -144,7 +142,7 @@ class TestUser:
             user.set_activation_code("abc12345", None)
 
     def test_clear_activation_code(self, make_user):
-        
+
         user = make_user()
         expires_at = datetime.now() + timedelta(minutes=15)
 
@@ -155,7 +153,7 @@ class TestUser:
         assert user.activation_code_expires_at is None
 
     def test_activate_user_clears_activation_data(self, make_user):
-        
+
         user = make_user()
         expires_at = datetime.now() + timedelta(minutes=15)
 
@@ -176,3 +174,11 @@ class TestUser:
 
         assert user.activation_code == "abc12345"
 
+    # tests para os métodos de gerenciamento de roles
+    def test_add_role(self, make_user):
+        user = make_user(roles={"cliente"})
+        user.add_role("admin")
+        assert "admin" in user.roles
+        assert user.is_provider() is False
+        user.add_role("prestador")
+        assert user.is_provider() is True

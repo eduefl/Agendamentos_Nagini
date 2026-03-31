@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from infrastructure.service.sqlalchemy.service_model import ServiceModel
 import pytest
 from unittest.mock import MagicMock
 from uuid import uuid4
@@ -71,22 +72,39 @@ class TestProviderServiceMagicMockRepository:
     def test_list_by_provider_id(self, setup):
         repository, session = setup
         provider_id = uuid4()
-        mock_model = ProviderServiceModel(
+        service_id = uuid4()
+
+        mock_provider_service = ProviderServiceModel(
             id=uuid4(),
             provider_id=provider_id,
-            service_id=uuid4(),
+            service_id=service_id,
             price=Decimal("100.00"),
             active=True,
             created_at=datetime.utcnow(),
         )
 
-        session.query().filter().all.return_value = [mock_model]
+        mock_service = ServiceModel(
+            id=service_id,
+            name="Serviço teste",
+            description="Descrição teste",
+        )
+
+        query_mock = session.query.return_value
+        join_mock = query_mock.join.return_value
+        filter_mock = join_mock.filter.return_value
+
+        filter_mock.all.return_value = [(mock_provider_service, mock_service)]
 
         result = repository.list_by_provider_id(provider_id)
 
         assert len(result) == 1
         assert result[0].provider_id == provider_id
-        assert session.query().filter().all.called
+        assert result[0].service_id == service_id
+        assert result[0].price == Decimal("100.00")
+        assert result[0].active is True
+        assert result[0].service_name == "Serviço teste"
+        assert result[0].service_description == "Descrição teste"
+
 
     def test_to_entity(self):
         model = ProviderServiceModel(

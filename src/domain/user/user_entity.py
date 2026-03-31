@@ -75,17 +75,14 @@ class User:
         if self.activation_code_expires_at is not None:
             if not isinstance(self.activation_code_expires_at, datetime):
                 raise ValueError("Activation code expiration must be a datetime.")
-            
+
         if self.activation_code is not None and self.activation_code_expires_at is None:
             raise ValueError(
                 "Activation code expiration must be provided when activation code exists."
             )
 
         if self.activation_code is None and self.activation_code_expires_at is not None:
-            raise ValueError(
-                "Activation code must be provided when expiration exists."
-            )
-            
+            raise ValueError("Activation code must be provided when expiration exists.")
 
         if not isinstance(self.roles, set):
             raise ValueError("roles must be a set of strings.")
@@ -125,23 +122,23 @@ class User:
     def collect_tasks(self, tasks: List[Task]) -> None:
         """
         Adds a list of tasks to the user's task list.
-        
+
         Parameters:
         tasks (List[Task]): A list of Task objects to be added to the user's tasks.
-        
+
         Returns:
         None
         """
-        
+
         self.tasks.extend(tasks)
 
     def count_pending_tasks(self) -> int:
         """
-		Counts the number of pending tasks.
+        Counts the number of pending tasks.
 
-		Returns:
-			int: The total number of tasks that are not completed.
-		"""
+        Returns:
+                int: The total number of tasks that are not completed.
+        """
 
         return sum(1 for task in self.tasks if not task.completed)
 
@@ -158,15 +155,19 @@ class User:
         if not normalized_code:
             raise ValueError("Activation code must be a non-empty string.")
         if expires_at is None:
-            raise ValueError("Activation code expiration must be provided when activation code exists.")
+            raise ValueError(
+                "Activation code expiration must be provided when activation code exists."
+            )
 
         self.activation_code = normalized_code
         self.activation_code_expires_at = expires_at
 
-
     def clear_activation_code(self) -> None:
         self.activation_code = None
         self.activation_code_expires_at = None
+
+    def is_provider(self) -> bool:
+        return self.has_role("prestador")
 
     def __str__(self) -> str:
         # não exibir hashed_password
