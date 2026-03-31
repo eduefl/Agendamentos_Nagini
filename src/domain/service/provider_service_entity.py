@@ -3,7 +3,10 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from domain.service.service_exceptions import ProviderServiceAlreadyActive, ProviderServiceAlreadyInactiveError
+from domain.service.service_exceptions import (
+    ProviderServiceAlreadyActiveError,
+    ProviderServiceAlreadyInactiveError,
+)
 
 
 class ProviderService:
@@ -52,7 +55,7 @@ class ProviderService:
         if not isinstance(self.created_at, datetime):
             raise ValueError("Created at must be a datetime.")
         return True
-    
+
     def deactivate(self) -> None:
         if not self.active:
             raise ProviderServiceAlreadyInactiveError()
@@ -60,5 +63,5 @@ class ProviderService:
 
     def activate(self) -> None:
         if self.active:
-            raise ProviderServiceAlreadyActive()
+            raise ProviderServiceAlreadyActiveError()
         self.active = True

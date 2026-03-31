@@ -1,5 +1,5 @@
 from domain.__seedwork.exceptions import ForbiddenError
-from domain.service.service_exceptions import ProviderServiceAlreadyExistsError, ProviderServiceAlreadyInactiveError, ProviderServiceNotFoundError, ServiceNotFoundError
+from domain.service.service_exceptions import ProviderServiceAlreadyActiveError, ProviderServiceAlreadyExistsError, ProviderServiceAlreadyInactiveError, ProviderServiceNotFoundError, ServiceNotFoundError
 from domain.security.security_exceptions import (
     ExpiredTokenError,
     InvalidTokenError,
@@ -28,7 +28,7 @@ def raise_http_from_error(e: Exception) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     if isinstance(e, (UserNotFoundError, TaskNotFoundError, ServiceNotFoundError, ProviderServiceNotFoundError)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    if isinstance(e, (UserAlreadyActiveError, EmailAlreadyExistsError, ProviderServiceAlreadyExistsError, ProviderServiceAlreadyInactiveError)):
+    if isinstance(e, (UserAlreadyActiveError, EmailAlreadyExistsError, ProviderServiceAlreadyExistsError, ProviderServiceAlreadyInactiveError, ProviderServiceAlreadyActiveError)):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     if isinstance(e, ActivationCodeExpiredError):
         raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(e))

@@ -20,6 +20,7 @@ class ProviderServiceAlreadyInactiveError(ConflictError):
     def __init__(self):
         super().__init__("This provider service is already inactive")
 
-class ProviderServiceAlreadyActive(ConflictError):
+
+class ProviderServiceAlreadyActiveError(ConflictError):
     def __init__(self):
         super().__init__("This provider service is already active")
