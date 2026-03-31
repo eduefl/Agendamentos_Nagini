@@ -1,3 +1,10 @@
+from infrastructure.api.factories.make_list_provider_services_usecase import (
+    make_list_provider_services_usecase,
+)
+from usecases.service.list_provider_services.list_provider_services_dto import (
+    ListProviderServicesInputDTO,
+    ListProviderServicesOutputDTO,
+)
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
@@ -5,17 +12,19 @@ from domain.user.user_entity import User
 from infrastructure.api.database import get_session
 from infrastructure.api.routers._error_mapper import raise_http_from_error
 from infrastructure.api.security.require_prestador import require_prestador
-from infrastructure.api.factories.make_create_provider_service_usecase import make_create_provider_service_usecase
+from infrastructure.api.factories.make_create_provider_service_usecase import (
+    make_create_provider_service_usecase,
+)
 from usecases.service.create_provider_service.create_provider_service_dto import (
     CreateProviderServiceInputDTO,
     CreateProviderServiceOutputDTO,
 )
 
-from infrastructure.api.routers.dto.service_routers_dto import CreateProviderServiceRequestDTO
+from infrastructure.api.routers.dto.service_routers_dto import (
+    CreateProviderServiceRequestDTO,
+)
 
 router = APIRouter(prefix="/provider-services", tags=["Provider Services"])
-
-
 
 
 @router.post(
@@ -37,6 +46,28 @@ def create_provider_service(
             service_id=request.service_id,
             description=request.description,
             price=request.price,
+        )
+
+        output = use_case.execute(input_dto)
+        return output
+    except Exception as e:
+        raise_http_from_error(e)
+
+
+@router.get(
+    "/",
+    response_model=ListProviderServicesOutputDTO,
+    status_code=status.HTTP_200_OK,
+)
+def list_provider_services(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_prestador),
+):
+    try:
+        use_case = make_list_provider_services_usecase(session)
+
+        input_dto = ListProviderServicesInputDTO(
+            provider_id=current_user.id,
         )
 
         output = use_case.execute(input_dto)
