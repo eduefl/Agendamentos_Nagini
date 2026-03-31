@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 from uuid import UUID
 
-from domain.service.provider_service_list_item_read_model import ProviderServiceListItem
 from domain.service.provider_service_entity import ProviderService
-from typing import Optional
+from domain.service.provider_service_list_item_read_model import ProviderServiceListItem
 
 
 class ProviderServiceRepositoryInterface(ABC):
     @abstractmethod
-    def create_provider_service(self, provider_service: ProviderService) -> None:
+    def create_provider_service(self, provider_service: ProviderService) -> ProviderService:
         raise NotImplementedError
 
     @abstractmethod
@@ -17,6 +17,14 @@ class ProviderServiceRepositoryInterface(ABC):
         provider_id: UUID,
         service_id: UUID,
     ) -> Optional[ProviderService]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def find_by_id(self, provider_service_id: UUID) -> Optional[ProviderService]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update(self, provider_service: ProviderService) -> ProviderService:
         raise NotImplementedError
 
     @abstractmethod

@@ -1,3 +1,4 @@
+from domain.service.service_exceptions import ProviderServiceAlreadyActive, ProviderServiceAlreadyInactiveError
 import pytest
 from uuid import uuid4, UUID
 from decimal import Decimal
@@ -79,3 +80,33 @@ class TestProviderService:
                 price=Decimal("10.00"),
                 created_at="not-a-datetime",
             )
+
+    def test_provider_service_deactivate(self):
+        provider_service = ProviderService(
+            id=uuid4(), provider_id=uuid4(), service_id=uuid4(), price=Decimal("10.00")
+        )
+        provider_service.deactivate()
+        assert provider_service.active is False
+
+    def test_provider_service_deactivate_already_inactive(self):
+        provider_service = ProviderService(
+            id=uuid4(), provider_id=uuid4(), service_id=uuid4(), price=Decimal("10.00")
+        )
+        provider_service.deactivate()
+        with pytest.raises(ProviderServiceAlreadyInactiveError, match="This provider service is already inactive"):
+            provider_service.deactivate()
+
+    def test_provider_service_activate(self):
+        provider_service = ProviderService(
+            id=uuid4(), provider_id=uuid4(), service_id=uuid4(), price=Decimal("10.00"), active=False
+        )
+        provider_service.activate()
+        assert provider_service.active is True
+
+    def test_provider_service_activate_already_active(self):
+        provider_service = ProviderService(
+            id=uuid4(), provider_id=uuid4(), service_id=uuid4(), price=Decimal("10.00")
+        )
+        with pytest.raises(ProviderServiceAlreadyActive, match="This provider service is already active"):
+            provider_service.activate()
+            

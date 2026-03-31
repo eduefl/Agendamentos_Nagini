@@ -1,3 +1,6 @@
+from uuid import UUID
+from infrastructure.api.factories.make_deactivate_provider_service_usecase import make_deactivate_provider_service_usecase
+from usecases.service.deactivate_provider_service.deactivate_provider_service_dto import DeactivateProviderServiceInputDTO, DeactivateProviderServiceOutputDTO
 from infrastructure.api.factories.make_list_provider_services_usecase import (
     make_list_provider_services_usecase,
 )
@@ -68,6 +71,30 @@ def list_provider_services(
 
         input_dto = ListProviderServicesInputDTO(
             provider_id=current_user.id,
+        )
+
+        output = use_case.execute(input_dto)
+        return output
+    except Exception as e:
+        raise_http_from_error(e)
+
+
+@router.patch(
+    "/{provider_service_id}/deactivate",
+    response_model=DeactivateProviderServiceOutputDTO,
+    status_code=status.HTTP_200_OK,
+)
+def deactivate_provider_service(
+    provider_service_id: UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_prestador),
+):
+    try:
+        use_case = make_deactivate_provider_service_usecase(session)
+
+        input_dto = DeactivateProviderServiceInputDTO(
+            provider_id=current_user.id,
+            provider_service_id=provider_service_id,
         )
 
         output = use_case.execute(input_dto)

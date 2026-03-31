@@ -71,6 +71,34 @@ class ProviderServiceRepository(ProviderServiceRepositoryInterface):
             for provider_service, service in rows
         ]
 
+
+    def find_by_id(self, provider_service_id: UUID) -> Optional[ProviderService]:
+        provider_service_in_db = (
+            self.session.query(ProviderServiceModel)
+            .filter(ProviderServiceModel.id == provider_service_id)
+            .first()
+        )
+
+        if provider_service_in_db is None:
+            return None
+
+        return self._to_entity(provider_service_in_db)
+
+
+    def update(self, provider_service: ProviderService) -> ProviderService:
+        provider_service_in_db = (
+            self.session.query(ProviderServiceModel)
+            .filter(ProviderServiceModel.id == provider_service.id)
+            .first()
+        )
+
+        provider_service_in_db.active = provider_service.active
+
+        self.session.commit()
+        self.session.refresh(provider_service_in_db)
+
+        return self._to_entity(provider_service_in_db)
+
     @staticmethod
     def _to_entity(model: ProviderServiceModel) -> ProviderService:
         return ProviderService(
