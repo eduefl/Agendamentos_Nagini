@@ -3,9 +3,6 @@ from enum import Enum
 from typing import Optional, Union
 from uuid import UUID
 
-from domain.service_request.service_request_exceptions import (
-    InvalidServiceRequestDateError,
-)
 
 
 class ServiceRequestStatus(str, Enum):

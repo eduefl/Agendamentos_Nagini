@@ -67,5 +67,19 @@ class TestServiceSqlalchemyRepository:
 		assert found.name == service.name
 		assert found.description == service.description
 
+	def test_list_all_services(self, make_service, tst_db_session):
+		session = tst_db_session
+		repo = ServiceRepository(session=session)
+		service1 = make_service(name="Service A")
+		service2 = make_service(name="Service B")
+		repo.create_service(service=service1)
+		repo.create_service(service=service2)
+
+		services = repo.list_all()
+
+		assert len(services) == 2
+		assert services[0].name == "service a"#always deve retornar em lowercase por causa do _to_entity() e do create_service() que normaliza o nome
+		assert services[1].name == "service b"
+
  
 

@@ -75,3 +75,18 @@ class TestServiceMagicMockRepository:
 
         assert service is None
         assert session.query().filter().first.called
+
+    def test_list_all_services(self, setup):
+        repository, session = setup
+        service_models = [
+            ServiceModel(id=uuid4(), name="service a", description="A service."),
+            ServiceModel(id=uuid4(), name="service b", description="B service."),
+        ]
+        session.query().order_by().all.return_value = service_models
+
+        services = repository.list_all()
+
+        assert len(services) == 2
+        assert all(isinstance(service, Service) for service in services)
+        assert session.query().order_by().all.called
+        

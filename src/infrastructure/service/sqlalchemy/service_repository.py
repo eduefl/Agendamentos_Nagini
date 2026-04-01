@@ -48,6 +48,14 @@ class ServiceRepository(ServiceRepositoryInterface):
 
         return self._to_entity(service_in_db)
 
+    def list_all(self) -> list[Service]:
+        services_in_db = (
+            self.session.query(ServiceModel)
+            .order_by(ServiceModel.name.asc())
+            .all()
+        )
+
+        return [self._to_entity(service) for service in services_in_db]
 
     @staticmethod
     def _to_entity(model: ServiceModel) -> Service:

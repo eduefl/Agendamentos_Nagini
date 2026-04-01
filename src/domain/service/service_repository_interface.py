@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
+from typing import Optional
 
 from domain.service.service_entity import Service
-from typing import Optional
 
 
 class ServiceRepositoryInterface(ABC):
@@ -19,3 +19,6 @@ class ServiceRepositoryInterface(ABC):
     def find_by_name(self, name: str) -> Optional[Service]:
         raise NotImplementedError
 
+    @abstractmethod
+    def list_all(self) -> list[Service]:
+        raise NotImplementedError
