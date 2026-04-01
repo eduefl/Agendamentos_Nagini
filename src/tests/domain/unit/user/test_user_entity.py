@@ -182,3 +182,14 @@ class TestUser:
         assert user.is_provider() is False
         user.add_role("prestador")
         assert user.is_provider() is True
+    
+    def test_remove_role(self, make_user):
+        user = make_user(roles={"cliente", "admin"})
+        user.remove_role("admin")
+        assert "admin" not in user.roles
+        assert "cliente" in user.roles
+        assert user.is_client() is True
+        user.remove_role("cliente")
+        assert user.is_client() is False
+        
+    

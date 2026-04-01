@@ -169,6 +169,9 @@ class User:
     def is_provider(self) -> bool:
         return self.has_role("prestador")
 
+    def is_client(self) -> bool:
+        return self.has_role("cliente")
+
     def __str__(self) -> str:
         # não exibir hashed_password
         roles = sorted(self.roles)

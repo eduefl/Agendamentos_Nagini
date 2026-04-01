@@ -58,3 +58,10 @@ class UserModel(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+
+    service_requests = relationship(
+        "ServiceRequestModel",
+        back_populates="client",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )

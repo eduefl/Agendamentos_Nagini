@@ -22,4 +22,8 @@ class ServiceModel(Base):
         lazy="selectin",
     )
 
-
+    service_requests = relationship(
+        "ServiceRequestModel",
+        back_populates="service",
+        lazy="selectin",
+    )
