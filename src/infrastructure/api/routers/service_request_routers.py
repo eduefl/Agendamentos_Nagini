@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from infrastructure.api.factories.make_list_my_service_requests_usecase import make_list_my_service_requests_usecase
+from usecases.service_request.list_my_service_requests.list_my_service_requests_dto import ListMyServiceRequestsInputDTO, ListMyServiceRequestsOutputItemDTO
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -47,6 +49,27 @@ def create_service_request(
             service_id=body.service_id,
             desired_datetime=body.desired_datetime,
             address=body.address,
+        )
+
+        output = use_case.execute(input_dto)
+        return output
+    except Exception as e:
+        raise_http_from_error(e)
+
+@router.get(
+    "/me",
+    response_model=list[ListMyServiceRequestsOutputItemDTO],
+    status_code=status.HTTP_200_OK,
+)
+def list_my_service_requests(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_cliente),
+):
+    try:
+        use_case = make_list_my_service_requests_usecase(session)
+
+        input_dto = ListMyServiceRequestsInputDTO(
+            client_id=current_user.id,
         )
 
         output = use_case.execute(input_dto)

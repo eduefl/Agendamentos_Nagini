@@ -1,6 +1,11 @@
 from typing import Optional
 from uuid import UUID
 
+from domain.__seedwork.normalize import normalize_service_name
+from domain.service_request.client_service_list_item_read_model import (
+    ClientServiceRequestListItem,
+)
+from infrastructure.service.sqlalchemy.service_model import ServiceModel
 from sqlalchemy.orm import Session
 
 from domain.service_request.service_request_entity import ServiceRequest
@@ -83,3 +88,30 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         )
 
         return [self._model_to_entity(model) for model in models]
+
+    def list_by_client_id_with_service_data(
+        self,
+        client_id: UUID,
+    ) -> list[ClientServiceRequestListItem]:
+        models = (
+            self.session.query(ServiceRequestModel, ServiceModel)
+            .join(ServiceModel, ServiceModel.id == ServiceRequestModel.service_id)
+            .filter(ServiceRequestModel.client_id == client_id)
+            .order_by(ServiceRequestModel.created_at.desc())
+            .all()
+        )
+
+        return [
+            ClientServiceRequestListItem(
+                service_request_id=model.id,
+                client_id=model.client_id,
+                service_id=model.service_id,
+                service_name=normalize_service_name(service.name),
+                service_description=service.description,
+                desired_datetime=model.desired_datetime,
+                status=model.status,
+                address=model.address,
+                created_at=model.created_at,
+            )
+            for model, service in models
+        ]

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+from infrastructure.service.sqlalchemy.service_repository import ServiceRepository
 from domain.service_request.service_request_entity import (
     ServiceRequest,
     ServiceRequestStatus,
@@ -214,3 +215,70 @@ class TestServiceRequestRepository:
         result = repository.list_by_client_id(uuid4())
 
         assert result == []
+
+    def test_list_by_client_id_with_service_data(self, tst_db_session, make_user, make_service , seed_roles):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+        user_repository = userRepository(session=session)
+        service_repository = ServiceRepository(session=session)
+
+        
+        # Create a user and services
+        user = make_user()
+        another_user = make_user()
+        user_repository.add_user(user)
+        user_repository.add_user(another_user)
+
+        
+        service1 = make_service(name="SERVIÇO DE ENTREGA DE CARTAS", description="SErViçO de Entrega de Cartas")
+        service2 = make_service(name="serviço de leitura de mãos", description="SErViçO de Leitura de Mãos")
+        service3 = make_service(name="Service 3", description="Description 3")
+
+        service_repository.create_service(service1)
+        service_repository.create_service(service2)
+        service_repository.create_service(service3)
+
+        
+        # Create service requests
+        service_request1 = ServiceRequest(
+            id=uuid4(),
+            client_id=user.id,
+            service_id=service1.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            address="Rua 1",
+            created_at=datetime.utcnow() ,
+        )
+        service_request2 = ServiceRequest(
+            id=uuid4(),
+            client_id=user.id,
+            service_id=service2.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=2),
+            address="Rua 2",
+            created_at=datetime.utcnow() ,
+        )
+        
+
+        service_request3 = ServiceRequest(
+            id=uuid4(),
+            client_id=another_user.id,
+            service_id=service3.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            address="Rua 1",
+            created_at=datetime.utcnow() ,
+        )
+        repository.create(service_request1)
+        repository.create(service_request2)
+        repository.create(service_request3)
+
+        # Call the method under test
+        result = repository.list_by_client_id_with_service_data(user.id)
+
+        # Assert that the result contains the correct service data in order the service requests were created (newest first)
+        assert len(result) == 2
+        assert result[1].service_name == "Serviço de Entrega de Cartas" #Capitalize first letter and lowercase the rest
+        assert result[1].service_description == "SErViçO de Entrega de Cartas" #Not normalized
+        assert result[1].client_id == user.id
+
+        assert result[0].service_name == "Serviço de Leitura de Mãos"
+        assert result[0].service_description == "SErViçO de Leitura de Mãos"
+        assert result[0].client_id == user.id
