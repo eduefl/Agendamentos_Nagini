@@ -2,7 +2,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -20,6 +20,7 @@ from fastapi.testclient import TestClient
 
 from infrastructure.api.main import app
 from infrastructure.api.database import get_session
+
 
 # import smtplib
 
@@ -106,28 +107,23 @@ def make_provider_service():
 # Use if the tests get slow because of the database setup, otherwise you can use the default scope which is "function" (a new fixture instance for each test function).
 # @pytest.fixture(scope="session")
 
+
 @pytest.fixture()
 def engine():
-    """
-    Fixture that creates an in-memory SQLite database engine for testing.
-
-    This fixture sets up a SQLite database that resides in memory, which is useful for running tests
-    without the need for a physical database file. It also creates the necessary tables defined in
-    the SQLAlchemy Base metadata.
-
-    Returns:
-        engine: A SQLAlchemy engine connected to an in-memory SQLite database.
-    """
-    
-    # Create an in-memory SQLite database engine for testing
     engine = create_engine(
-        "sqlite://",  # Connection string for an in-memory SQLite database
-        future=True,  # Use the future API of SQLAlchemy
-        connect_args={"check_same_thread": False},  # Allow connections from different threads
-        poolclass=StaticPool,  # Use a static pool for the database connections
+        "sqlite://",
+        future=True,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
-    
-    # Create all tables defined in the Base metadata in the in-memory database
+
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     return engine
 

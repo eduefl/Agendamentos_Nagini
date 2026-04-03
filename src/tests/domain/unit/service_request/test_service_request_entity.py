@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
@@ -48,10 +49,10 @@ class TestServiceRequest:
             client_id=uuid4(),
             service_id=uuid4(),
             desired_datetime=datetime.utcnow() + timedelta(hours=2),
-            status=ServiceRequestStatus.MATCHING_PROVIDER,
+            status=ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE,
         )
 
-        assert service_request.status == ServiceRequestStatus.MATCHING_PROVIDER.value
+        assert service_request.status == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
 
     def test_service_request_should_accept_valid_status_string(self):
         service_request = ServiceRequest(
@@ -59,10 +60,10 @@ class TestServiceRequest:
             client_id=uuid4(),
             service_id=uuid4(),
             desired_datetime=datetime.utcnow() + timedelta(hours=2),
-            status="confirmed",
+            status="DECLINED",
         )
 
-        assert service_request.status == ServiceRequestStatus.CONFIRMED.value
+        assert service_request.status == ServiceRequestStatus.DECLINED.value
 
 
     def test_service_request_should_raise_error_when_created_at_is_invalid(self):
@@ -121,3 +122,251 @@ class TestServiceRequest:
                 desired_datetime=datetime.utcnow() + timedelta(days=1),
                 address=123,
             )
+
+    def test_service_request_should_raise_error_when_accepted_provider_id_is_invalid(self):
+        with pytest.raises(ValueError, match="Accepted provider ID must be a UUID or None."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                accepted_provider_id="invalid-provider-id",
+            )
+
+    def test_service_request_should_raise_error_when_departure_address_is_invalid(self):
+        with pytest.raises(ValueError, match="Departure address must be a string or None."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                departure_address=123,
+            )
+
+    def test_service_request_should_raise_error_when_service_price_is_invalid(self):
+        with pytest.raises(ValueError, match="Service price must be a Decimal or None."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                service_price="invalid-price",
+            )
+
+    def test_service_request_should_raise_error_when_travel_price_is_invalid(self):
+        with pytest.raises(ValueError, match="Travel price must be a Decimal or None."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                travel_price="invalid-price",
+            )
+
+    def test_service_request_should_raise_error_when_total_price_is_invalid(self):
+        with pytest.raises(ValueError, match="Total price must be a Decimal or None."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                total_price="invalid-price",
+            )
+
+    def test_service_request_should_raise_error_when_accepted_at_is_invalid(self):
+        with pytest.raises(ValueError, match="Accepted at must be a datetime or None."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                accepted_at="2026-03-31",
+            )
+
+    def test_service_request_should_raise_error_when_expires_at_is_invalid(self):
+        with pytest.raises(ValueError, match="Expires at must be a datetime or None."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                expires_at="2026-03-31",
+            )
+    
+    def test_service_request_should_raise_error_when_accepted_provider_id_is_none_in_confirmed_state(self):
+        with pytest.raises(ValueError, match="Confirmed service request must have accepted_provider_id."):
+            ServiceRequest(
+            id=uuid4(),
+            client_id=uuid4(),
+            service_id=uuid4(),
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            status=ServiceRequestStatus.CONFIRMED,
+            accepted_provider_id=None,
+        )
+
+    def test_service_request_should_raise_error_when_departure_address_is_none_in_confirmed_state(self):
+        with pytest.raises(ValueError, match="Confirmed service request must have departure_address."):
+             ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                status=ServiceRequestStatus.CONFIRMED,
+                accepted_provider_id=uuid4(),
+                departure_address=None,
+            )
+
+    def test_service_request_should_raise_error_when_service_price_is_none_in_confirmed_state(self):
+        with pytest.raises(ValueError, match="Confirmed service request must have service_price."):
+             ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                status=ServiceRequestStatus.CONFIRMED,
+                accepted_provider_id=uuid4(),
+                departure_address="Something",
+                service_price=None,
+            )
+
+    def test_service_request_should_raise_error_when_travel_price_is_none_in_confirmed_state(self):
+        with pytest.raises(ValueError, match="Confirmed service request must have travel_price."):
+             ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                status=ServiceRequestStatus.CONFIRMED,
+                accepted_provider_id=uuid4(),
+                departure_address="Something",
+                service_price=Decimal('10.00'),
+                travel_price=None,
+            )
+
+    def test_service_request_should_raise_error_when_total_price_is_none_in_confirmed_state(self):
+        with pytest.raises(ValueError, match="Confirmed service request must have total_price."):
+             ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                status=ServiceRequestStatus.CONFIRMED,
+                accepted_provider_id=uuid4(),
+                departure_address="Something",
+                service_price=Decimal('10.00'),
+                travel_price=Decimal('10.00'),
+                total_price=None,
+            )
+
+    def test_service_request_should_raise_error_when_accepted_at_is_none_in_confirmed_state(self):
+        with pytest.raises(ValueError, match="Confirmed service request must have accepted_at."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                status=ServiceRequestStatus.CONFIRMED,
+                accepted_provider_id=uuid4(),
+                departure_address="Something",
+                service_price=Decimal('10.00'),
+                travel_price=Decimal('10.00'),
+                total_price=Decimal('20.00'),
+                accepted_at=None,
+            )
+
+    def test_service_request_should_raise_error_when_total_price_is_inconsistent(self):
+            with pytest.raises(ValueError) as exc_info:
+                ServiceRequest(
+                    id=uuid4(),
+                    client_id=uuid4(),
+                    service_id=uuid4(),
+                    desired_datetime=datetime.utcnow() + timedelta(days=1),
+                    status=ServiceRequestStatus.CONFIRMED,
+                    accepted_provider_id=uuid4(),
+                    departure_address="Something",
+                    service_price=Decimal('10.00'),
+                    travel_price=Decimal('5.00'),
+                    total_price=Decimal('20.00'),  # Inconsistent total price
+                    accepted_at=datetime.utcnow(),
+                )
+            assert "Total price must be equal to service_price + travel_price." in str(exc_info.value)
+
+    def test_service_request_should_pass_validation_when_all_fields_are_correct_in_confirmed_state(self):
+        service_request = ServiceRequest(
+            id=uuid4(),
+            client_id=uuid4(),
+            service_id=uuid4(),
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            status=ServiceRequestStatus.CONFIRMED,
+            accepted_provider_id=uuid4(),
+            departure_address="Rua das Flores, 123",
+            service_price=Decimal('10.00'),
+            travel_price=Decimal('5.00'),
+            total_price=Decimal('15.00'),
+            accepted_at=datetime.utcnow(),
+        )
+        assert service_request.validate() is True
+        
+    def test_service_request_should_raise_error_when_acceptance_fields_are_filled_in_non_confirmed_cancelled_state(self):
+        with pytest.raises(ValueError, match="Only confirmed or cancelled service requests can have acceptance and pricing fields filled."):
+             ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                accepted_provider_id=uuid4(),
+                departure_address="123 Main St",
+                service_price=Decimal('100.00'),
+                travel_price=Decimal('10.00'),
+                total_price=Decimal('110.00'),
+                status=ServiceRequestStatus.REQUESTED,
+            )
+
+    def test_service_request_should_not_raise_error_when_status_is_confirmed(self):
+        service_request = ServiceRequest(
+            id=uuid4(),
+            client_id=uuid4(),
+            service_id=uuid4(),
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            accepted_provider_id=uuid4(),
+            departure_address="123 Main St",
+            service_price=Decimal('100.00'),
+            travel_price=Decimal('10.00'),
+            total_price=Decimal('110.00'),
+            accepted_at=datetime.utcnow(),
+            status=ServiceRequestStatus.CONFIRMED,
+        )
+        # This should not raise an error
+        assert service_request._validate_non_confirmed_cancelled_state() is True
+
+    def test_service_request_should_not_raise_error_when_status_is_cancelled(self):
+        service_request = ServiceRequest(
+            id=uuid4(),
+            client_id=uuid4(),
+            service_id=uuid4(),
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            accepted_provider_id=uuid4(),
+            departure_address="123 Main St",
+            service_price=Decimal('100.00'),
+            travel_price=Decimal('10.00'),
+            total_price=Decimal('110.00'),
+            status=ServiceRequestStatus.CANCELLED,
+        )
+        # This should not raise an error
+        assert service_request._validate_non_confirmed_cancelled_state() is True
+
+    def test_service_request_should_not_raise_error_when_acceptance_fields_are_none_in_non_confirmed_state(self):
+        service_request = ServiceRequest(
+            id=uuid4(),
+            client_id=uuid4(),
+            service_id=uuid4(),
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            accepted_provider_id=None,
+            departure_address=None,
+            service_price=None,
+            travel_price=None,
+            total_price=None,
+            status=ServiceRequestStatus.REQUESTED,
+        )
+        # This should not raise an error
+        assert service_request._validate_non_confirmed_cancelled_state() is True

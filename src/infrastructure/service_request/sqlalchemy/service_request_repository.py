@@ -33,6 +33,13 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             status=model.status,
             address=model.address,
             created_at=model.created_at,
+            accepted_provider_id=model.accepted_provider_id,
+            departure_address=model.departure_address,
+            service_price=model.service_price,
+            travel_price=model.travel_price,
+            total_price=model.total_price,
+            accepted_at=model.accepted_at,
+            expires_at=model.expires_at,
         )
 
     def _entity_to_model(
@@ -47,6 +54,13 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             status=entity.status,
             address=entity.address,
             created_at=entity.created_at,
+            accepted_provider_id=entity.accepted_provider_id,
+            departure_address=entity.departure_address,
+            service_price=entity.service_price,
+            travel_price=entity.travel_price,
+            total_price=entity.total_price,
+            accepted_at=entity.accepted_at,
+            expires_at=entity.expires_at,            
         )
 
     def create(

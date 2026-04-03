@@ -1,12 +1,16 @@
 from datetime import datetime, timedelta
+from decimal import Decimal
 from uuid import uuid4
 
-from infrastructure.service.sqlalchemy.service_repository import ServiceRepository
+import pytest
+from sqlalchemy.exc import IntegrityError
+
 from domain.service_request.service_request_entity import (
     ServiceRequest,
     ServiceRequestStatus,
 )
 from infrastructure.service.sqlalchemy.service_model import ServiceModel
+from infrastructure.service.sqlalchemy.service_repository import ServiceRepository
 from infrastructure.service_request.sqlalchemy.service_request_model import (
     ServiceRequestModel,
 )
@@ -229,9 +233,14 @@ class TestServiceRequestRepository:
         user_repository.add_user(user)
         user_repository.add_user(another_user)
 
-        
-        service1 = make_service(name="SERVIÇO DE ENTREGA DE CARTAS", description="SErViçO de Entrega de Cartas")
-        service2 = make_service(name="serviço de leitura de mãos", description="SErViçO de Leitura de Mãos")
+        service1 = make_service(
+            name="SERVIÇO DE ENTREGA DE CARTAS",
+            description="SErViçO de Entrega de Cartas",
+        )
+        service2 = make_service(
+            name="serviço de leitura de mãos",
+            description="SErViçO de Leitura de Mãos",
+        )
         service3 = make_service(name="Service 3", description="Description 3")
 
         service_repository.create_service(service1)
@@ -282,3 +291,358 @@ class TestServiceRequestRepository:
         assert result[0].service_name == "Serviço de Leitura de Mãos"
         assert result[0].service_description == "SErViçO de Leitura de Mãos"
         assert result[0].client_id == user.id
+
+
+
+    def test_create_should_persist_new_acceptance_fields(
+        self,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+        user_repository = userRepository(session=session)
+
+        client = make_user(
+            id=uuid4(),
+            name="Cliente Persistencia",
+            email="cliente.persistencia@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        provider = make_user(
+            id=uuid4(),
+            name="Prestador Persistencia",
+            email="prestador.persistencia@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"prestador"},
+        )
+        user_repository.add_user(client)
+        user_repository.add_user(provider)
+
+        service = ServiceModel(
+            id=uuid4(),
+            name="Massagem",
+            description="Massagem relaxante",
+        )
+        session.add(service)
+        session.commit()
+
+        accepted_at = datetime.utcnow()
+        expires_at = datetime.utcnow() + timedelta(hours=1)
+
+        entity = ServiceRequest(
+            id=uuid4(),
+            client_id=client.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            status=ServiceRequestStatus.CONFIRMED,
+            address="Rua Principal, 10",
+            accepted_provider_id=provider.id,
+            departure_address="Rua do Prestador, 999",
+            service_price=Decimal("150.00"),
+            travel_price=Decimal("25.50"),
+            total_price=Decimal("175.50"),
+            accepted_at=accepted_at,
+            expires_at=expires_at,
+        )
+
+        created = repository.create(entity)
+
+        assert created.id == entity.id
+        assert created.status == ServiceRequestStatus.CONFIRMED.value
+        assert created.accepted_provider_id == provider.id
+        assert created.departure_address == "Rua do Prestador, 999"
+        assert created.service_price == Decimal("150.00")
+        assert created.travel_price == Decimal("25.50")
+        assert created.total_price == Decimal("175.50")
+        assert created.accepted_at == accepted_at
+        assert created.expires_at == expires_at
+
+        persisted_model = (
+            session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == entity.id)
+            .first()
+        )
+
+        assert persisted_model is not None
+        assert persisted_model.status == ServiceRequestStatus.CONFIRMED.value
+        assert persisted_model.accepted_provider_id == provider.id
+        assert persisted_model.departure_address == "Rua do Prestador, 999"
+        assert persisted_model.service_price == Decimal("150.00")
+        assert persisted_model.travel_price == Decimal("25.50")
+        assert persisted_model.total_price == Decimal("175.50")
+        assert persisted_model.accepted_at == accepted_at
+        assert persisted_model.expires_at == expires_at
+
+    def test_create_should_raise_error_when_accepted_provider_id_does_not_exist(
+        self,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+        user_repository = userRepository(session=session)
+
+        client = make_user(
+            id=uuid4(),
+            name="Cliente FK",
+            email="cliente.fk@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        user_repository.add_user(client)
+
+        service = ServiceModel(
+            id=uuid4(),
+            name="Serviço com FK",
+            description="Teste de foreign key",
+        )
+        session.add(service)
+        session.commit()
+
+        request_id = uuid4()
+
+        entity = ServiceRequest(
+            id=request_id,
+            client_id=client.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            status=ServiceRequestStatus.CONFIRMED,
+            address="Rua Teste, 123",
+            accepted_provider_id=uuid4(),
+            departure_address="Rua Origem, 999",
+            service_price=Decimal("100.00"),
+            travel_price=Decimal("20.00"),
+            total_price=Decimal("120.00"),
+            accepted_at=datetime.utcnow(),
+            expires_at=datetime.utcnow() + timedelta(hours=1),
+        )
+
+        with pytest.raises(IntegrityError):
+            repository.create(entity)
+            session.flush()
+
+        session.rollback()
+
+        persisted_model = (
+            session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == request_id)
+            .first()
+        )
+
+        assert persisted_model is None
+
+    def test_find_by_id_should_hydrate_new_phase_1_fields(
+        self,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+        user_repository = userRepository(session=session)
+
+        client = make_user(
+            id=uuid4(),
+            name="Cliente Hidratação",
+            email="cliente.hidratacao@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        provider = make_user(
+            id=uuid4(),
+            name="Prestador Hidratação",
+            email="prestador.hidratacao@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"prestador"},
+        )
+        user_repository.add_user(client)
+        user_repository.add_user(provider)
+
+        service = ServiceModel(
+            id=uuid4(),
+            name="Consulta",
+            description="Consulta presencial",
+        )
+        session.add(service)
+        session.commit()
+
+        accepted_at = datetime.utcnow()
+        expires_at = datetime.utcnow() + timedelta(minutes=30)
+
+        entity = ServiceRequest(
+            id=uuid4(),
+            client_id=client.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=2),
+            status=ServiceRequestStatus.CONFIRMED,
+            address="Rua A, 100",
+            accepted_provider_id=provider.id,
+            departure_address="Rua B, 200",
+            service_price=Decimal("89.90"),
+            travel_price=Decimal("10.10"),
+            total_price=Decimal("100.00"),
+            accepted_at=accepted_at,
+            expires_at=expires_at,
+        )
+        repository.create(entity)
+
+        found = repository.find_by_id(entity.id)
+
+        assert found is not None
+        assert found.id == entity.id
+        assert found.client_id == client.id
+        assert found.service_id == service.id
+        assert found.status == ServiceRequestStatus.CONFIRMED.value
+        assert found.accepted_provider_id == provider.id
+        assert found.departure_address == "Rua B, 200"
+        assert found.service_price == Decimal("89.90")
+        assert found.travel_price == Decimal("10.10")
+        assert found.total_price == Decimal("100.00")
+        assert found.accepted_at == accepted_at
+        assert found.expires_at == expires_at
+
+    def test_list_by_client_id_should_return_requests_with_null_prices_before_acceptance(
+        self,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+        user_repository = userRepository(session=session)
+
+        client = make_user(
+            id=uuid4(),
+            name="Cliente Sem Aceite",
+            email="cliente.sem.aceite@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        user_repository.add_user(client)
+
+        service = ServiceModel(
+            id=uuid4(),
+            name="Instalação",
+            description="Instalação técnica",
+        )
+        session.add(service)
+        session.commit()
+
+        request = ServiceRequest(
+            id=uuid4(),
+            client_id=client.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            status=ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE,
+            address="Rua Sem Aceite, 50",
+            expires_at=datetime.utcnow() + timedelta(hours=1),
+        )
+        repository.create(request)
+
+        result = repository.list_by_client_id(client.id)
+
+        assert len(result) == 1
+        assert (
+            result[0].status
+            == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
+        )
+        assert result[0].accepted_provider_id is None
+        assert result[0].departure_address is None
+        assert result[0].service_price is None
+        assert result[0].travel_price is None
+        assert result[0].total_price is None
+        assert result[0].accepted_at is None
+        assert result[0].expires_at is not None
+
+    def test_list_by_client_id_should_return_prices_filled_after_confirmation(
+        self,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+        user_repository = userRepository(session=session)
+
+        client = make_user(
+            id=uuid4(),
+            name="Cliente Confirmado",
+            email="cliente.confirmado@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        provider = make_user(
+            id=uuid4(),
+            name="Prestador Confirmado",
+            email="prestador.confirmado@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"prestador"},
+        )
+        user_repository.add_user(client)
+        user_repository.add_user(provider)
+
+        service = ServiceModel(
+            id=uuid4(),
+            name="Visita Técnica",
+            description="Visita técnica residencial",
+        )
+        session.add(service)
+        session.commit()
+
+        accepted_at = datetime.utcnow()
+
+        confirmed_request = ServiceRequest(
+            id=uuid4(),
+            client_id=client.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=3),
+            status=ServiceRequestStatus.CONFIRMED,
+            address="Rua Confirmada, 77",
+            accepted_provider_id=provider.id,
+            departure_address="Rua Origem, 12",
+            service_price=Decimal("200.00"),
+            travel_price=Decimal("35.00"),
+            total_price=Decimal("235.00"),
+            accepted_at=accepted_at,
+            expires_at=datetime.utcnow() + timedelta(hours=2),
+        )
+        repository.create(confirmed_request)
+
+        result = repository.list_by_client_id(client.id)
+
+        assert len(result) == 1
+        assert result[0].status == ServiceRequestStatus.CONFIRMED.value
+        assert result[0].accepted_provider_id == provider.id
+        assert result[0].departure_address == "Rua Origem, 12"
+        assert result[0].service_price == Decimal("200.00")
+        assert result[0].travel_price == Decimal("35.00")
+        assert result[0].total_price == Decimal("235.00")
+        assert result[0].accepted_at == accepted_at

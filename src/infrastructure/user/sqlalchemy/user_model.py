@@ -61,7 +61,15 @@ class UserModel(Base):
 
     service_requests = relationship(
         "ServiceRequestModel",
+        foreign_keys="ServiceRequestModel.client_id",
         back_populates="client",
         cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    accepted_service_requests = relationship(
+        "ServiceRequestModel",
+        foreign_keys="ServiceRequestModel.accepted_provider_id",
+        back_populates="accepted_provider",
         lazy="selectin",
     )
