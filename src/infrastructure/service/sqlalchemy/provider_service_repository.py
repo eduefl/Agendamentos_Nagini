@@ -1,6 +1,8 @@
 from typing import Optional
 from uuid import UUID
 
+from infrastructure.user.sqlalchemy.user_model import RoleModel, UserModel, user_roles
+from domain.service.eligible_provider_read_model import EligibleProviderReadModel
 from domain.service.provider_service_list_item_read_model import ProviderServiceListItem
 from infrastructure.service.sqlalchemy.service_model import ServiceModel
 from sqlalchemy.orm import Session
@@ -98,6 +100,34 @@ class ProviderServiceRepository(ProviderServiceRepositoryInterface):
         self.session.refresh(provider_service_in_db)
 
         return self._to_entity(provider_service_in_db)
+
+
+    def list_eligible_providers_by_service_id(
+        self, service_id: UUID
+    ) -> list[EligibleProviderReadModel]:
+        rows = (
+            self.session.query(ProviderServiceModel, UserModel)
+            .join(UserModel, UserModel.id == ProviderServiceModel.provider_id)
+            .join(user_roles, user_roles.c.user_id == UserModel.id)
+            .join(RoleModel, RoleModel.id == user_roles.c.role_id)
+            .filter(
+                ProviderServiceModel.service_id == service_id,
+                ProviderServiceModel.active == True,
+                UserModel.is_active == True,
+                RoleModel.name == "prestador",
+            )
+            .all()
+        )
+        return [
+            EligibleProviderReadModel(
+                provider_id=ps.provider_id,
+                provider_name=user.name,
+                provider_service_id=ps.id,
+                service_id=ps.service_id,
+                price=ps.price,
+            )
+            for ps, user in rows
+        ]
 
     @staticmethod
     def _to_entity(model: ProviderServiceModel) -> ProviderService:

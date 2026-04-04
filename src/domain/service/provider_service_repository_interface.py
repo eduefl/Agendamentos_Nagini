@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 from uuid import UUID
 
+from domain.service.eligible_provider_read_model import EligibleProviderReadModel
 from domain.service.provider_service_entity import ProviderService
 from domain.service.provider_service_list_item_read_model import ProviderServiceListItem
 
@@ -29,4 +30,10 @@ class ProviderServiceRepositoryInterface(ABC):
 
     @abstractmethod
     def list_by_provider_id(self, provider_id: UUID) -> list[ProviderServiceListItem]:
+        raise NotImplementedError
+    
+    @abstractmethod
+    def list_eligible_providers_by_service_id(
+        self, service_id: UUID
+    ) -> list[EligibleProviderReadModel]:
         raise NotImplementedError

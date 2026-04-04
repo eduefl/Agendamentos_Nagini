@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+from infrastructure.service.sqlalchemy.provider_service_repository import (
+    ProviderServiceRepository,
+)
 import pytest
 
 from domain.__seedwork.exceptions import ForbiddenError
@@ -35,6 +38,7 @@ class TestCreateServiceRequestUseCaseIntegration:
         service_request_repository = ServiceRequestRepository(session=session)
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
+        provider_service_repository = ProviderServiceRepository(session=session)
 
         client = make_user(
             id=uuid4(),
@@ -60,6 +64,7 @@ class TestCreateServiceRequestUseCaseIntegration:
             service_request_repository=service_request_repository,
             user_repository=user_repository,
             service_repository=service_repository,
+            provider_service_repository=provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -74,14 +79,14 @@ class TestCreateServiceRequestUseCaseIntegration:
         assert isinstance(output, CreateServiceRequestOutputDTO)
         assert output.client_id == client.id
         assert output.service_id == service.id
-        assert output.status == "REQUESTED"
+        assert output.status == "AWAITING_PROVIDER_ACCEPTANCE"
         assert output.address == "Rua das Acácias, 45"
 
         persisted = service_request_repository.find_by_id(output.service_request_id)
         assert persisted is not None
         assert persisted.client_id == client.id
         assert persisted.service_id == service.id
-        assert persisted.status == "REQUESTED"
+        assert persisted.status == "AWAITING_PROVIDER_ACCEPTANCE"
 
     def test_create_service_request_user_not_found(
         self,
@@ -91,11 +96,13 @@ class TestCreateServiceRequestUseCaseIntegration:
         service_request_repository = ServiceRequestRepository(session=session)
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
+        provider_service_repository = ProviderServiceRepository(session=session)
 
         use_case = CreateServiceRequestUseCase(
             service_request_repository=service_request_repository,
             user_repository=user_repository,
             service_repository=service_repository,
+            provider_service_repository=provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -117,6 +124,7 @@ class TestCreateServiceRequestUseCaseIntegration:
         service_request_repository = ServiceRequestRepository(session=session)
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
+        provider_service_repository = ProviderServiceRepository(session=session)
 
         client = make_user(
             id=uuid4(),
@@ -135,6 +143,7 @@ class TestCreateServiceRequestUseCaseIntegration:
             service_request_repository=service_request_repository,
             user_repository=user_repository,
             service_repository=service_repository,
+            provider_service_repository=provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -156,6 +165,7 @@ class TestCreateServiceRequestUseCaseIntegration:
         service_request_repository = ServiceRequestRepository(session=session)
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
+        provider_service_repository = ProviderServiceRepository(session=session)
 
         user = make_user(
             id=uuid4(),
@@ -174,6 +184,7 @@ class TestCreateServiceRequestUseCaseIntegration:
             service_request_repository=service_request_repository,
             user_repository=user_repository,
             service_repository=service_repository,
+            provider_service_repository=provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -195,6 +206,7 @@ class TestCreateServiceRequestUseCaseIntegration:
         service_request_repository = ServiceRequestRepository(session=session)
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
+        provider_service_repository = ProviderServiceRepository(session=session)
 
         client = make_user(
             id=uuid4(),
@@ -213,6 +225,7 @@ class TestCreateServiceRequestUseCaseIntegration:
             service_request_repository=service_request_repository,
             user_repository=user_repository,
             service_repository=service_repository,
+            provider_service_repository=provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -234,6 +247,7 @@ class TestCreateServiceRequestUseCaseIntegration:
         service_request_repository = ServiceRequestRepository(session=session)
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
+        provider_service_repository = ProviderServiceRepository(session=session)
 
         client = make_user(
             id=uuid4(),
@@ -259,6 +273,7 @@ class TestCreateServiceRequestUseCaseIntegration:
             service_request_repository=service_request_repository,
             user_repository=user_repository,
             service_repository=service_repository,
+            provider_service_repository=provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(

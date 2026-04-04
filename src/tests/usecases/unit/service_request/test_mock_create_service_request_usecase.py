@@ -2,6 +2,10 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 from uuid import uuid4
 
+from infrastructure.security.settings import get_settings
+from domain.service.provider_service_repository_interface import (
+    ProviderServiceRepositoryInterface,
+)
 import pytest
 
 from domain.__seedwork.exceptions import ForbiddenError
@@ -32,6 +36,9 @@ class TestMockCreateServiceRequestUseCase:
         )
         mock_user_repository = MagicMock(spec=userRepositoryInterface)
         mock_service_repository = MagicMock(spec=ServiceRepositoryInterface)
+        mock_provider_service_repository = MagicMock(
+            spec=ProviderServiceRepositoryInterface
+        )
 
         client_id = uuid4()
         service_id = uuid4()
@@ -47,11 +54,16 @@ class TestMockCreateServiceRequestUseCase:
         mock_service_request_repository.create.side_effect = (
             lambda service_request: service_request
         )
+        mock_service_request_repository.update.side_effect = (
+            lambda service_request: service_request
+        )
+
 
         use_case = CreateServiceRequestUseCase(
             service_request_repository=mock_service_request_repository,
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
+            provider_service_repository=mock_provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -61,26 +73,35 @@ class TestMockCreateServiceRequestUseCase:
             address="Rua das Flores, 123",
         )
 
+        settings = get_settings()
+        expires_at  = datetime.utcnow() + timedelta(minutes=settings.expire_minutes_request)
+        
+
         output = use_case.execute(input_dto)
 
         assert isinstance(output, CreateServiceRequestOutputDTO)
         assert output.client_id == client_id
         assert output.service_id == service_id
         assert output.desired_datetime == desired_datetime
-        assert output.status == "REQUESTED"
+        assert output.status == 'AWAITING_PROVIDER_ACCEPTANCE'
         assert output.address == "Rua das Flores, 123"
         assert isinstance(output.created_at, datetime)
+        assert output.expires_at > expires_at
+        assert output.expires_at < expires_at + timedelta(minutes=1)
+        
 
         mock_user_repository.find_user_by_id.assert_called_once_with(client_id)
         mock_service_repository.find_by_id.assert_called_once_with(service_id)
         mock_service_request_repository.create.assert_called_once()
+        mock_provider_service_repository.list_eligible_providers_by_service_id.assert_called_once_with(service_id)
+
 
         created_entity = mock_service_request_repository.create.call_args[0][0]
         assert isinstance(created_entity, ServiceRequest)
         assert created_entity.client_id == client_id
         assert created_entity.service_id == service_id
         assert created_entity.desired_datetime == desired_datetime
-        assert created_entity.status == "REQUESTED"
+        assert created_entity.status == 'AWAITING_PROVIDER_ACCEPTANCE'
         assert created_entity.address == "Rua das Flores, 123"
 
     def test_create_service_request_user_not_found(self):
@@ -89,6 +110,9 @@ class TestMockCreateServiceRequestUseCase:
         )
         mock_user_repository = MagicMock(spec=userRepositoryInterface)
         mock_service_repository = MagicMock(spec=ServiceRepositoryInterface)
+        mock_provider_service_repository = MagicMock(
+            spec=ProviderServiceRepositoryInterface
+        )
 
         client_id = uuid4()
         service_id = uuid4()
@@ -99,6 +123,7 @@ class TestMockCreateServiceRequestUseCase:
             service_request_repository=mock_service_request_repository,
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
+            provider_service_repository=mock_provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -119,6 +144,9 @@ class TestMockCreateServiceRequestUseCase:
         )
         mock_user_repository = MagicMock(spec=userRepositoryInterface)
         mock_service_repository = MagicMock(spec=ServiceRepositoryInterface)
+        mock_provider_service_repository = MagicMock(
+            spec=ProviderServiceRepositoryInterface
+        )
 
         client_id = uuid4()
         service_id = uuid4()
@@ -130,6 +158,7 @@ class TestMockCreateServiceRequestUseCase:
             service_request_repository=mock_service_request_repository,
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
+            provider_service_repository=mock_provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -150,6 +179,9 @@ class TestMockCreateServiceRequestUseCase:
         )
         mock_user_repository = MagicMock(spec=userRepositoryInterface)
         mock_service_repository = MagicMock(spec=ServiceRepositoryInterface)
+        mock_provider_service_repository = MagicMock(
+            spec=ProviderServiceRepositoryInterface
+        )
 
         client_id = uuid4()
         service_id = uuid4()
@@ -162,6 +194,7 @@ class TestMockCreateServiceRequestUseCase:
             service_request_repository=mock_service_request_repository,
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
+            provider_service_repository=mock_provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -182,6 +215,9 @@ class TestMockCreateServiceRequestUseCase:
         )
         mock_user_repository = MagicMock(spec=userRepositoryInterface)
         mock_service_repository = MagicMock(spec=ServiceRepositoryInterface)
+        mock_provider_service_repository = MagicMock(
+            spec=ProviderServiceRepositoryInterface
+        )
 
         client_id = uuid4()
         service_id = uuid4()
@@ -196,6 +232,7 @@ class TestMockCreateServiceRequestUseCase:
             service_request_repository=mock_service_request_repository,
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
+            provider_service_repository=mock_provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -217,6 +254,9 @@ class TestMockCreateServiceRequestUseCase:
         )
         mock_user_repository = MagicMock(spec=userRepositoryInterface)
         mock_service_repository = MagicMock(spec=ServiceRepositoryInterface)
+        mock_provider_service_repository = MagicMock(
+            spec=ProviderServiceRepositoryInterface
+        )
 
         client_id = uuid4()
         service_id = uuid4()
@@ -232,6 +272,7 @@ class TestMockCreateServiceRequestUseCase:
             service_request_repository=mock_service_request_repository,
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
+            provider_service_repository=mock_provider_service_repository,
         )
 
         input_dto = CreateServiceRequestInputDTO(

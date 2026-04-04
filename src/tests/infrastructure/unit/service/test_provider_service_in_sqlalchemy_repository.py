@@ -17,14 +17,14 @@ from infrastructure.user.sqlalchemy.user_repository import userRepository
 
 class TestProviderServiceSqlalchemyRepository:
     @staticmethod
-    def _create_persisted_provider(session, make_user):
+    def _create_persisted_provider(session, make_user, is_active=True):
         repo = userRepository(session=session)
         provider = make_user(
             id=uuid4(),
             name=f"Prestador {uuid4()}",
             email=f"{uuid4()}@example.com",
             hashed_password="hashed_password",
-            is_active=True,
+            is_active=is_active,
             activation_code=None,
             activation_code_expires_at=None,
             roles={"prestador"},
@@ -209,3 +209,209 @@ class TestProviderServiceSqlalchemyRepository:
 
         with pytest.raises(IntegrityError):
             repository.create_provider_service(provider_service2)
+
+    def test_list_eligible_providers_by_service_id(
+        self,
+        tst_db_session,
+        make_provider_service,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        repository = ProviderServiceRepository(session=session)
+
+        # Create a user and a service
+        provider1 = self._create_persisted_provider(session, make_user)
+        provider2 = self._create_persisted_provider(session, make_user)
+        provider3 = self._create_persisted_provider(session, make_user)
+        provider4 = self._create_persisted_provider(
+            session, make_user, is_active=False
+        )
+
+        service1 = self._create_persisted_service(
+            session,
+            name="Serviço Elegível 1",
+            description="Descrição 1",
+        )
+        service2 = self._create_persisted_service(
+            session,
+            name="Serviço Elegível 2",
+            description="Descrição 2",
+        )
+        # Create provider service association
+        provider_service1 = make_provider_service(
+            provider_id=provider1.id,
+            service_id=service1.id,
+            price=Decimal("100.00"),
+        )
+        repository.create_provider_service(provider_service1)
+
+        provider_service2 = make_provider_service(
+            provider_id=provider2.id,
+            service_id=service1.id,
+            price=Decimal("150.00"),
+        )
+        repository.create_provider_service(provider_service2)
+
+        provider_service3 = make_provider_service(
+            provider_id=provider3.id,
+            service_id=service2.id,
+            price=Decimal("200.00"),
+        )
+        repository.create_provider_service(provider_service3)
+
+        provider_service4 = make_provider_service(
+            provider_id=provider4.id,
+            service_id=service1.id,
+            price=Decimal("250.00"),
+        )
+        repository.create_provider_service(provider_service4)
+
+        # Test listing eligible providers by service ID
+        eligible_providers = repository.list_eligible_providers_by_service_id(service1.id)
+
+        assert len(eligible_providers) == 2
+
+        returned_provider_ids = {item.provider_id for item in eligible_providers}
+        assert provider1.id in returned_provider_ids
+        assert provider2.id in returned_provider_ids
+
+        assert provider3.id not in returned_provider_ids
+        assert provider4.id not in returned_provider_ids
+
+        returned_provider_service_ids = {
+            item.provider_service_id for item in eligible_providers
+        }
+        assert provider_service1.id in returned_provider_service_ids
+        assert provider_service2.id in returned_provider_service_ids
+
+        returned_prices = {item.price for item in eligible_providers}
+        assert Decimal("100.00") in returned_prices
+        assert Decimal("150.00") in returned_prices
+
+        assert all(item.service_id == service1.id for item in eligible_providers)
+        assert all(item.provider_name for item in eligible_providers)
+
+        non_existent_service_id = uuid4()
+        eligible_providers_empty = repository.list_eligible_providers_by_service_id(
+            non_existent_service_id
+        )
+
+        assert eligible_providers_empty == []
+
+
+    def test_list_eligible_providers_by_service_id_should_ignore_inactive_provider_service(
+        self,
+        tst_db_session,
+        make_provider_service,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        repository = ProviderServiceRepository(session=session)
+
+        provider_active_service = self._create_persisted_provider(session, make_user)
+        provider_inactive_service = self._create_persisted_provider(session, make_user)
+
+        service = self._create_persisted_service(
+            session,
+            name="Serviço com provider service ativo/inativo",
+            description="Descrição do serviço",
+        )
+
+        active_provider_service = make_provider_service(
+            provider_id=provider_active_service.id,
+            service_id=service.id,
+            price=Decimal("100.00"),
+            active=True,
+        )
+        repository.create_provider_service(active_provider_service)
+
+        inactive_provider_service = make_provider_service(
+            provider_id=provider_inactive_service.id,
+            service_id=service.id,
+            price=Decimal("150.00"),
+            active=False,
+        )
+        repository.create_provider_service(inactive_provider_service)
+
+        eligible_providers = repository.list_eligible_providers_by_service_id(service.id)
+
+        assert len(eligible_providers) == 1
+        assert eligible_providers[0].provider_id == provider_active_service.id
+        assert eligible_providers[0].provider_service_id == active_provider_service.id
+        assert eligible_providers[0].service_id == service.id
+        assert eligible_providers[0].price == Decimal("100.00")
+
+        returned_provider_ids = {item.provider_id for item in eligible_providers}
+        assert provider_inactive_service.id not in returned_provider_ids
+
+        returned_provider_service_ids = {
+            item.provider_service_id for item in eligible_providers
+        }
+        assert inactive_provider_service.id not in returned_provider_service_ids        
+
+
+    def test_list_eligible_providers_by_service_id_should_ignore_user_without_prestador_role(
+        self,
+        tst_db_session,
+        make_provider_service,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        repository = ProviderServiceRepository(session=session)
+        user_repo = userRepository(session=session)
+
+        eligible_provider = self._create_persisted_provider(session, make_user)
+
+        non_provider_user = make_user(
+            id=uuid4(),
+            name=f"Cliente {uuid4()}",
+            email=f"{uuid4()}@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        user_repo.add_user(non_provider_user)
+
+        service = self._create_persisted_service(
+            session,
+            name="Serviço com regra de role",
+            description="Descrição do serviço",
+        )
+
+        eligible_provider_service = make_provider_service(
+            provider_id=eligible_provider.id,
+            service_id=service.id,
+            price=Decimal("100.00"),
+            active=True,
+        )
+        repository.create_provider_service(eligible_provider_service)
+
+        non_provider_user_service = make_provider_service(
+            provider_id=non_provider_user.id,
+            service_id=service.id,
+            price=Decimal("150.00"),
+            active=True,
+        )
+        repository.create_provider_service(non_provider_user_service)
+
+        eligible_providers = repository.list_eligible_providers_by_service_id(service.id)
+
+        assert len(eligible_providers) == 1
+
+        assert eligible_providers[0].provider_id == eligible_provider.id
+        assert eligible_providers[0].provider_service_id == eligible_provider_service.id
+        assert eligible_providers[0].service_id == service.id
+        assert eligible_providers[0].price == Decimal("100.00")
+
+        returned_provider_ids = {item.provider_id for item in eligible_providers}
+        assert non_provider_user.id not in returned_provider_ids
+
+        returned_provider_service_ids = {
+            item.provider_service_id for item in eligible_providers
+        }
+        assert non_provider_user_service.id not in returned_provider_service_ids        

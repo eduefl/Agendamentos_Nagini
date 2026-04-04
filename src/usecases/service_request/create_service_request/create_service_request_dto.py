@@ -20,3 +20,5 @@ class CreateServiceRequestOutputDTO(BaseModel):
     status: str
     address: Optional[str] = None
     created_at: datetime
+    expires_at: Optional[datetime] = None
+

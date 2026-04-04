@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
+from domain.service_request.service_request_exceptions import ServiceRequestNotFoundError
 import pytest
 from sqlalchemy.exc import IntegrityError
 
@@ -646,3 +647,72 @@ class TestServiceRequestRepository:
         assert result[0].travel_price == Decimal("35.00")
         assert result[0].total_price == Decimal("235.00")
         assert result[0].accepted_at == accepted_at
+    
+    
+    def test_update_service_request_should_update_existing_request(self, tst_db_session, make_user, make_service):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+        user_repository = userRepository(session=session)
+
+        client = make_user(
+            id=uuid4(),
+            name="Cliente 1",
+            email="cliente1@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        user_repository.add_user(client)
+
+        service = ServiceModel(
+            id=uuid4(),
+            name="Corte de cabelo",
+            description="Corte masculino",
+        )
+        session.add(service)
+        session.commit()
+
+        entity = ServiceRequest(
+            id=uuid4(),
+            client_id=client.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            address="Rua das Flores, 123",
+        )
+
+        created = repository.create(entity)
+
+        # Update the service request
+        entity.address = "Rua das Flores, 456"
+        timeexpire =  datetime.utcnow() + timedelta(hours=1)
+        entity.status = ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
+        entity.expires_at = timeexpire
+        updated = repository.update(entity)
+
+        assert updated.id == created.id
+        assert updated.address == "Rua das Flores, 456"
+        assert updated.status == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
+        assert updated.expires_at == timeexpire
+
+        persisted_model = session.query(ServiceRequestModel).filter(ServiceRequestModel.id == created.id).first()
+        assert persisted_model is not None
+        assert persisted_model.address == "Rua das Flores, 456"
+        assert persisted_model.status == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
+        assert persisted_model.expires_at == timeexpire
+
+    def test_update_service_request_should_raise_not_found_error(self, tst_db_session):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+
+        non_existent_request = ServiceRequest(
+            id=uuid4(),
+            client_id=uuid4(),
+            service_id=uuid4(),
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            address="Rua Inexistente, 123",
+        )
+
+        with pytest.raises(ServiceRequestNotFoundError):
+            repository.update(non_existent_request)

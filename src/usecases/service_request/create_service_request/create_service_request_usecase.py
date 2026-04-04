@@ -1,10 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 
+from infrastructure.security.settings import get_settings
+from domain.service.provider_service_repository_interface import (
+    ProviderServiceRepositoryInterface,
+)
 from domain.__seedwork.exceptions import ForbiddenError
 from domain.service.service_exceptions import ServiceNotFoundError
 from domain.service.service_repository_interface import ServiceRepositoryInterface
-from domain.service_request.service_request_entity import ServiceRequest
+from domain.service_request.service_request_entity import ServiceRequest, ServiceRequestStatus
 from domain.service_request.service_request_exceptions import (
     InvalidServiceRequestDateError,
 )
@@ -24,10 +28,12 @@ class CreateServiceRequestUseCase:
         service_request_repository: ServiceRequestRepositoryInterface,
         user_repository: userRepositoryInterface,
         service_repository: ServiceRepositoryInterface,
+        provider_service_repository: ProviderServiceRepositoryInterface,
     ):
         self._service_request_repository = service_request_repository
         self._user_repository = user_repository
         self._service_repository = service_repository
+        self._provider_service_repository = provider_service_repository
 
     def _current_reference_datetime(self, desired_datetime: datetime) -> datetime:
         if desired_datetime.tzinfo is not None:
@@ -69,6 +75,17 @@ class CreateServiceRequestUseCase:
         created_service_request = self._service_request_repository.create(
             service_request
         )
+        self._provider_service_repository.list_eligible_providers_by_service_id(
+            created_service_request.service_id
+        )
+
+        # Encaixar aqui entrar os provedores elegíveis para o serviço solicitado, utilizando a lista retornada por list_eligible_providers_by_service_id
+
+        service_request.status = ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
+        settings = get_settings()
+        service_request.expires_at = datetime.utcnow() + timedelta(minutes=settings.expire_minutes_request)
+        created_service_request = self._service_request_repository.update(service_request)
+
 
         return CreateServiceRequestOutputDTO(
             service_request_id=created_service_request.id,
@@ -78,4 +95,5 @@ class CreateServiceRequestUseCase:
             status=created_service_request.status,
             address=created_service_request.address,
             created_at=created_service_request.created_at,
+            expires_at=created_service_request.expires_at,
         )

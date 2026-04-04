@@ -12,6 +12,7 @@ class Settings:
     secret_key: str
     algorithm: str
     access_token_expire_minutes: int
+    expire_minutes_request:int
 
 
 @lru_cache
@@ -19,6 +20,7 @@ def get_settings() -> Settings:
     secret_key = os.getenv("CHAVE_SECRETA")
     algorithm = os.getenv("ALGORITMO")
     expire_minutes_raw = os.getenv("TEMPO_DE_EXPIRACAO_TOKEN_DE_ACESSO")
+    expire_minutes_request = os.getenv("TEMPO_DE_EXPIRACAO_SOLICITACAO")
 
     if not secret_key:
         raise SettingsError("CHAVE_SECRETA não configurada")
@@ -26,6 +28,8 @@ def get_settings() -> Settings:
         raise SettingsError("ALGORITMO não configurado")
     if not expire_minutes_raw:
         raise SettingsError("TEMPO_DE_EXPIRACAO_TOKEN_DE_ACESSO não configurado")
+    if not expire_minutes_request:
+        raise SettingsError("TEMPO_DE_EXPIRACAO_SOLICITACAO não configurado")
 
     try:
         expire_minutes = int(expire_minutes_raw)
@@ -33,14 +37,28 @@ def get_settings() -> Settings:
         raise SettingsError(
             "TEMPO_DE_EXPIRACAO_TOKEN_DE_ACESSO deve ser um inteiro"
         ) from exc
+    
+    try:
+        expire_minutes_request_int = int(expire_minutes_request)
+    except ValueError as exc:
+        raise SettingsError(
+            "TEMPO_DE_EXPIRACAO_SOLICITACAO deve ser um inteiro"
+        ) from exc
+
 
     if expire_minutes <= 0:
         raise SettingsError(
             "TEMPO_DE_EXPIRACAO_TOKEN_DE_ACESSO deve ser maior que zero"
+        )
+    
+    if expire_minutes_request_int <= 0:
+        raise SettingsError(
+            "TEMPO_DE_EXPIRACAO_SOLICITACAO deve ser maior que zero"
         )
 
     return Settings(
         secret_key=secret_key,
         algorithm=algorithm,
         access_token_expire_minutes=expire_minutes,
+        expire_minutes_request=expire_minutes_request_int,
     )

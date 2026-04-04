@@ -226,9 +226,8 @@ class TestMockCreateProviderServiceUseCase(unittest.TestCase):
                 description="Test Description",
                 provider_id=uuid4(),
                 price=Decimal("100.00"),
-                service_id = uuid4(),
+                service_id=uuid4(),
             )
-
 
     # validate when service_id is filled but service does not exist, should raise ServiceNotFoundError
     def test_execute_raises_service_not_found_error_if_service_id_filled_but_service_not_exist(

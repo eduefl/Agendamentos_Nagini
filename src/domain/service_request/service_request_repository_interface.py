@@ -33,3 +33,7 @@ class ServiceRequestRepositoryInterface(ABC):
         client_id: UUID,
     ) -> list[ClientServiceRequestListItem]:
         raise NotImplementedError
+    
+    @abstractmethod
+    def update(self, service_request: ServiceRequest) -> ServiceRequest:
+        raise NotImplementedError

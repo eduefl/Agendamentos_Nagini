@@ -37,7 +37,9 @@ class CreateProviderServiceUseCase:
             user = self.user_repository.find_user_by_id(input.provider_id)
             roles = {role.lower() for role in user.roles}
             if "prestador" not in roles:
-                raise ForbiddenError("Apenas usuários com perfil prestador podem acessar esta operação")
+                raise ForbiddenError(
+                    "Apenas usuários com perfil prestador podem acessar esta operação"
+                )
             if input.service_id:
                 service = self.service_repository.find_by_id(input.service_id)
             else:
@@ -72,7 +74,7 @@ class CreateProviderServiceUseCase:
 
             self.provider_service_repository.create_provider_service(provider_service)
 
-            self.session.commit() #Comito os dois repositorios
+            self.session.commit()  # Comito os dois repositorios
 
             return CreateProviderServiceOutputDTO(
                 provider_service_id=provider_service.id,

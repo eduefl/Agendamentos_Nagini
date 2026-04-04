@@ -1,6 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
+from domain.service_request.service_request_exceptions import ServiceRequestNotFoundError
 from domain.__seedwork.normalize import normalize_service_name
 from domain.service_request.client_service_list_item_read_model import (
     ClientServiceRequestListItem,
@@ -129,3 +130,29 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             )
             for model, service in models
         ]
+
+    def update(self, service_request: ServiceRequest) -> ServiceRequest:
+        model = self.session.query(ServiceRequestModel).filter(
+            ServiceRequestModel.id == service_request.id
+        ).first()
+
+        if model is None:
+            raise ServiceRequestNotFoundError()
+
+        model.client_id = service_request.client_id
+        model.service_id = service_request.service_id
+        model.desired_datetime = service_request.desired_datetime
+        model.status = service_request.status
+        model.address = service_request.address
+        model.accepted_provider_id = service_request.accepted_provider_id
+        model.departure_address = service_request.departure_address
+        model.service_price = service_request.service_price
+        model.travel_price = service_request.travel_price
+        model.total_price = service_request.total_price
+        model.accepted_at = service_request.accepted_at
+        model.expires_at = service_request.expires_at
+
+        self.session.commit()
+        self.session.refresh(model)
+
+        return self._model_to_entity(model)

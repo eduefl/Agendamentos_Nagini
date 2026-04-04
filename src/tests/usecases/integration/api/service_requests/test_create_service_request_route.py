@@ -126,7 +126,7 @@ class TestCreateServiceRequestRoute:
         assert "service_request_id" in body
         assert body["client_id"] == str(client_user.id)
         assert body["service_id"] == str(service.id)
-        assert body["status"] == "REQUESTED"
+        assert body["status"] == "AWAITING_PROVIDER_ACCEPTANCE"
         assert body["address"] == "Rua das Flores, 123"
         assert body["desired_datetime"] is not None
         assert body["created_at"] is not None
