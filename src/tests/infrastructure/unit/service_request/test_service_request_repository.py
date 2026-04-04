@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
+from infrastructure.service.sqlalchemy.provider_service_repository import ProviderServiceRepository
 from domain.service_request.service_request_exceptions import ServiceRequestNotFoundError
 import pytest
 from sqlalchemy.exc import IntegrityError
@@ -22,6 +23,49 @@ from infrastructure.user.sqlalchemy.user_repository import userRepository
 
 
 class TestServiceRequestRepository:
+    @staticmethod
+    def _create_persisted_provider(session, make_user, is_active=True):
+        repo = userRepository(session=session)
+        provider = make_user(
+            id=uuid4(),
+            name=f"Prestador {uuid4()}",
+            email=f"{uuid4()}@example.com",
+            hashed_password="hashed_password",
+            is_active=is_active,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"prestador"},
+        )
+        repo.add_user(provider)
+        return provider
+
+    @staticmethod
+    def _create_persisted_client(session, make_user, is_active=True):
+        repo = userRepository(session=session)
+        provider = make_user(
+            id=uuid4(),
+            name=f"Prestador {uuid4()}",
+            email=f"{uuid4()}@example.com",
+            hashed_password="hashed_password",
+            is_active=is_active,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        repo.add_user(provider)
+        return provider
+
+    @staticmethod
+    def _create_persisted_service(session, service_id=None, name=None, description=None):
+        service = ServiceModel(
+            id=service_id or uuid4(),
+            name=name or f"Serviço {uuid4()}",
+            description=description or "Descrição do serviço",
+        )
+        session.add(service)
+        session.commit()
+        return service
+
     def test_create_service_request(
         self,
         tst_db_session,
@@ -716,3 +760,147 @@ class TestServiceRequestRepository:
 
         with pytest.raises(ServiceRequestNotFoundError):
             repository.update(non_existent_request)
+    
+    def test_list_available_for_provider_should_return_available_service_requests(
+        self,
+        tst_db_session,
+        make_user,
+        make_service,
+        make_provider_service,
+        seed_roles,
+    ):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+        Prov_serv  = ProviderServiceRepository(session=session)
+
+        provider = self._create_persisted_provider(session, make_user)
+        client = self._create_persisted_client(session, make_user)
+        service = self._create_persisted_service(
+            session,
+            name="Serviço 1",
+            description="Descrição 1",
+        )
+
+        provider_service = make_provider_service(
+            provider_id=provider.id,
+            service_id=service.id,
+            price=Decimal('100.00'),
+            active=True,
+        )
+        Prov_serv.create_provider_service(provider_service)
+        session.commit()
+
+        service_request = ServiceRequest(
+            id=uuid4(),
+            client_id=client.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            address="123 Main St",
+            status=ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value,
+            expires_at=datetime.utcnow() + timedelta(days=2),
+        )
+        repository.create(service_request)
+
+        result = repository.list_available_for_provider(provider.id)
+
+        assert len(result) == 1
+        assert result[0].service_request_id == service_request.id
+        assert result[0].client_id == client.id
+        assert result[0].service_id == service.id
+        assert result[0].provider_service_id == provider_service.id
+        assert result[0].price == provider_service.price
+
+    def test_list_available_for_provider_should_return_empty_when_no_requests_available(
+        self,
+        tst_db_session,
+        make_user,
+        make_service,
+        seed_roles,
+    ):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+
+        provider = make_user(
+            id=uuid4(),
+            name="Provider 2",
+            email="provider2@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"prestador"},
+        )
+
+        result = repository.list_available_for_provider(provider.id)
+
+        assert result == []
+
+
+    def test_list_available_for_provider_should_return_available_service_requests_order(
+        self,
+        tst_db_session,
+        make_user,
+        make_service,
+        make_provider_service,
+        seed_roles,
+    ):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+        Prov_serv  = ProviderServiceRepository(session=session)
+
+        provider = self._create_persisted_provider(session, make_user)
+        client1 = self._create_persisted_client(session, make_user)
+        client2 = self._create_persisted_client(session, make_user)
+        
+        service = self._create_persisted_service(
+            session,
+            name="Serviço 1",
+            description="Descrição 1",
+        )
+
+        provider_service = make_provider_service(
+            provider_id=provider.id,
+            service_id=service.id,
+            price=Decimal('100.00'),
+            active=True,
+        )
+        Prov_serv.create_provider_service(provider_service)
+        session.commit()
+
+        service_request1 = ServiceRequest(
+            id=uuid4(),
+            client_id=client1.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            address="123 Main St",
+            status=ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value,
+            expires_at=datetime.utcnow() + timedelta(days=2),
+        )
+        repository.create(service_request1)
+
+
+        service_request2 = ServiceRequest(
+            id=uuid4(),
+            client_id=client2.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            address="456 Main St",
+            status=ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value,
+            expires_at=datetime.utcnow() + timedelta(days=2),
+        )
+        repository.create(service_request2)
+
+        result = repository.list_available_for_provider(provider.id)
+
+        assert len(result) == 2
+        assert result[0].service_request_id == service_request1.id
+        assert result[0].client_id == client1.id
+        assert result[0].service_id == service.id
+        assert result[0].provider_service_id == provider_service.id
+        assert result[0].price == provider_service.price
+
+        assert result[1].service_request_id == service_request2.id
+        assert result[1].client_id == client2.id
+        assert result[1].service_id == service.id
+        assert result[1].provider_service_id == provider_service.id
+        assert result[1].price == provider_service.price

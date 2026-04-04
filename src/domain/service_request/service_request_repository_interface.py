@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 from uuid import UUID
 
+from domain.service_request.available_service_request_read_model import AvailableServiceRequestReadModel
 from domain.service_request.client_service_list_item_read_model import (
     ClientServiceRequestListItem,
 )
@@ -36,4 +37,11 @@ class ServiceRequestRepositoryInterface(ABC):
     
     @abstractmethod
     def update(self, service_request: ServiceRequest) -> ServiceRequest:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_available_for_provider(
+        self,
+        provider_id: UUID,
+    ) -> list[AvailableServiceRequestReadModel]:
         raise NotImplementedError

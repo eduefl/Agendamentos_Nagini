@@ -1,6 +1,9 @@
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from infrastructure.service.sqlalchemy.provider_service_model import ProviderServiceModel
+from domain.service_request.available_service_request_read_model import AvailableServiceRequestReadModel
 from domain.service_request.service_request_exceptions import ServiceRequestNotFoundError
 from domain.__seedwork.normalize import normalize_service_name
 from domain.service_request.client_service_list_item_read_model import (
@@ -9,7 +12,7 @@ from domain.service_request.client_service_list_item_read_model import (
 from infrastructure.service.sqlalchemy.service_model import ServiceModel
 from sqlalchemy.orm import Session
 
-from domain.service_request.service_request_entity import ServiceRequest
+from domain.service_request.service_request_entity import ServiceRequest, ServiceRequestStatus
 from domain.service_request.service_request_repository_interface import (
     ServiceRequestRepositoryInterface,
 )
@@ -156,3 +159,40 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         self.session.refresh(model)
 
         return self._model_to_entity(model)
+    
+    
+    def list_available_for_provider(
+        self,
+        provider_id: UUID,
+    ) -> list[AvailableServiceRequestReadModel]:
+        now = datetime.utcnow()
+        rows = (
+            self.session.query(ServiceRequestModel, ProviderServiceModel, ServiceModel)
+            .join(ProviderServiceModel, ProviderServiceModel.service_id == ServiceRequestModel.service_id)
+            .join(ServiceModel, ServiceModel.id == ServiceRequestModel.service_id)
+            .filter(
+                ProviderServiceModel.provider_id == provider_id,
+                ProviderServiceModel.active == True,
+                ServiceRequestModel.status == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value,
+                ServiceRequestModel.expires_at > now,
+            ).order_by(ServiceRequestModel.created_at)
+            .all()
+        )
+        return [
+            AvailableServiceRequestReadModel(
+                service_request_id=sr.id,
+                client_id=sr.client_id,
+                service_id=sr.service_id,
+                service_name=normalize_service_name(svc.name),
+                service_description=svc.description,
+                desired_datetime=sr.desired_datetime,
+                address=sr.address,
+                status=sr.status,
+                created_at=sr.created_at,
+                expires_at=sr.expires_at,
+                provider_service_id=ps.id,
+                price=ps.price,
+            )
+            for sr, ps, svc in rows
+        ]
+    
