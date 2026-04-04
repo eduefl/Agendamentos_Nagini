@@ -1,3 +1,4 @@
+from infrastructure.notification.smtp_email_sender import SMTPEmailSender
 from infrastructure.service.sqlalchemy.provider_service_repository import (
     ProviderServiceRepository,
 )
@@ -13,17 +14,17 @@ from usecases.service_request.create_service_request.create_service_request_usec
 )
 
 
-def make_create_service_request_usecase(
-    session: Session,
-) -> CreateServiceRequestUseCase:
+def make_create_service_request_usecase(session: Session) -> CreateServiceRequestUseCase:
     service_request_repository = ServiceRequestRepository(session=session)
     service_repository = ServiceRepository(session=session)
     user_repository = userRepository(session=session)
     provider_service_repository = ProviderServiceRepository(session=session)
+    email_sender = SMTPEmailSender()
 
     return CreateServiceRequestUseCase(
         service_request_repository=service_request_repository,
         user_repository=user_repository,
         service_repository=service_repository,
         provider_service_repository=provider_service_repository,
+        email_sender=email_sender,
     )

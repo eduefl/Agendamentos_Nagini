@@ -122,6 +122,7 @@ class ProviderServiceRepository(ProviderServiceRepositoryInterface):
             EligibleProviderReadModel(
                 provider_id=ps.provider_id,
                 provider_name=user.name,
+                provider_email=user.email,
                 provider_service_id=ps.id,
                 service_id=ps.service_id,
                 price=ps.price,

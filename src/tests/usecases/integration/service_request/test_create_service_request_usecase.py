@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+from tests.fakes.fake_email_sender import FakeEmailSender
 from infrastructure.service.sqlalchemy.provider_service_repository import (
     ProviderServiceRepository,
 )
@@ -39,6 +40,7 @@ class TestCreateServiceRequestUseCaseIntegration:
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
         provider_service_repository = ProviderServiceRepository(session=session)
+        email_sender = FakeEmailSender()
 
         client = make_user(
             id=uuid4(),
@@ -65,6 +67,7 @@ class TestCreateServiceRequestUseCaseIntegration:
             user_repository=user_repository,
             service_repository=service_repository,
             provider_service_repository=provider_service_repository,
+            email_sender=email_sender,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -97,12 +100,15 @@ class TestCreateServiceRequestUseCaseIntegration:
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
         provider_service_repository = ProviderServiceRepository(session=session)
+        email_sender = FakeEmailSender()
+        
 
         use_case = CreateServiceRequestUseCase(
             service_request_repository=service_request_repository,
             user_repository=user_repository,
             service_repository=service_repository,
             provider_service_repository=provider_service_repository,
+            email_sender=email_sender,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -125,6 +131,8 @@ class TestCreateServiceRequestUseCaseIntegration:
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
         provider_service_repository = ProviderServiceRepository(session=session)
+        email_sender = FakeEmailSender()
+
 
         client = make_user(
             id=uuid4(),
@@ -144,6 +152,7 @@ class TestCreateServiceRequestUseCaseIntegration:
             user_repository=user_repository,
             service_repository=service_repository,
             provider_service_repository=provider_service_repository,
+            email_sender = FakeEmailSender(),
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -166,6 +175,8 @@ class TestCreateServiceRequestUseCaseIntegration:
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
         provider_service_repository = ProviderServiceRepository(session=session)
+        email_sender = FakeEmailSender()
+
 
         user = make_user(
             id=uuid4(),
@@ -185,6 +196,7 @@ class TestCreateServiceRequestUseCaseIntegration:
             user_repository=user_repository,
             service_repository=service_repository,
             provider_service_repository=provider_service_repository,
+            email_sender=email_sender,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -207,6 +219,8 @@ class TestCreateServiceRequestUseCaseIntegration:
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
         provider_service_repository = ProviderServiceRepository(session=session)
+        email_sender = FakeEmailSender()
+
 
         client = make_user(
             id=uuid4(),
@@ -226,6 +240,7 @@ class TestCreateServiceRequestUseCaseIntegration:
             user_repository=user_repository,
             service_repository=service_repository,
             provider_service_repository=provider_service_repository,
+            email_sender=email_sender,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -248,6 +263,8 @@ class TestCreateServiceRequestUseCaseIntegration:
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
         provider_service_repository = ProviderServiceRepository(session=session)
+        email_sender = FakeEmailSender()
+
 
         client = make_user(
             id=uuid4(),
@@ -274,6 +291,7 @@ class TestCreateServiceRequestUseCaseIntegration:
             user_repository=user_repository,
             service_repository=service_repository,
             provider_service_repository=provider_service_repository,
+            email_sender=email_sender,
         )
 
         input_dto = CreateServiceRequestInputDTO(

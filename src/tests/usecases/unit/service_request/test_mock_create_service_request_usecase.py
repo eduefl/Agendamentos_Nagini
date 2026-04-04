@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 from uuid import uuid4
 
+from domain.notification.email_sender_interface import EmailSenderInterface
 from infrastructure.security.settings import get_settings
 from domain.service.provider_service_repository_interface import (
     ProviderServiceRepositoryInterface,
@@ -39,6 +40,7 @@ class TestMockCreateServiceRequestUseCase:
         mock_provider_service_repository = MagicMock(
             spec=ProviderServiceRepositoryInterface
         )
+        mock_smtp_email_sender = MagicMock(spec=EmailSenderInterface)
 
         client_id = uuid4()
         service_id = uuid4()
@@ -64,6 +66,7 @@ class TestMockCreateServiceRequestUseCase:
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
             provider_service_repository=mock_provider_service_repository,
+            email_sender=mock_smtp_email_sender,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -76,6 +79,13 @@ class TestMockCreateServiceRequestUseCase:
         settings = get_settings()
         expires_at  = datetime.utcnow() + timedelta(minutes=settings.expire_minutes_request)
         
+        provider_1 = MagicMock(provider_email="provider1@email.com", provider_name="Provider 1")
+        provider_2 = MagicMock(provider_email="provider2@email.com", provider_name="Provider 2")
+
+        mock_provider_service_repository.list_eligible_providers_by_service_id.return_value = [
+            provider_1,
+            provider_2,
+        ]
 
         output = use_case.execute(input_dto)
 
@@ -93,8 +103,10 @@ class TestMockCreateServiceRequestUseCase:
         mock_user_repository.find_user_by_id.assert_called_once_with(client_id)
         mock_service_repository.find_by_id.assert_called_once_with(service_id)
         mock_service_request_repository.create.assert_called_once()
-        mock_provider_service_repository.list_eligible_providers_by_service_id.assert_called_once_with(service_id)
+        mock_provider_service_repository.list_eligible_providers_by_service_id.assert_called_once_with(service_id)        
+        assert mock_smtp_email_sender.send_service_request_notification_email.call_count == 2
 
+        mock_smtp_email_sender.send_service_request_notification_email.assert_called()
 
         created_entity = mock_service_request_repository.create.call_args[0][0]
         assert isinstance(created_entity, ServiceRequest)
@@ -113,6 +125,8 @@ class TestMockCreateServiceRequestUseCase:
         mock_provider_service_repository = MagicMock(
             spec=ProviderServiceRepositoryInterface
         )
+        mock_smtp_email_sender = MagicMock(spec=EmailSenderInterface)
+
 
         client_id = uuid4()
         service_id = uuid4()
@@ -124,6 +138,7 @@ class TestMockCreateServiceRequestUseCase:
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
             provider_service_repository=mock_provider_service_repository,
+            email_sender=mock_smtp_email_sender,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -147,6 +162,7 @@ class TestMockCreateServiceRequestUseCase:
         mock_provider_service_repository = MagicMock(
             spec=ProviderServiceRepositoryInterface
         )
+        mock_smtp_email_sender = MagicMock(spec=EmailSenderInterface)
 
         client_id = uuid4()
         service_id = uuid4()
@@ -159,6 +175,7 @@ class TestMockCreateServiceRequestUseCase:
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
             provider_service_repository=mock_provider_service_repository,
+            email_sender=mock_smtp_email_sender,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -182,6 +199,8 @@ class TestMockCreateServiceRequestUseCase:
         mock_provider_service_repository = MagicMock(
             spec=ProviderServiceRepositoryInterface
         )
+        mock_smtp_email_sender = MagicMock(spec=EmailSenderInterface)
+        
 
         client_id = uuid4()
         service_id = uuid4()
@@ -195,6 +214,7 @@ class TestMockCreateServiceRequestUseCase:
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
             provider_service_repository=mock_provider_service_repository,
+            email_sender=mock_smtp_email_sender,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -218,6 +238,8 @@ class TestMockCreateServiceRequestUseCase:
         mock_provider_service_repository = MagicMock(
             spec=ProviderServiceRepositoryInterface
         )
+        mock_smtp_email_sender = MagicMock(spec=EmailSenderInterface)
+
 
         client_id = uuid4()
         service_id = uuid4()
@@ -233,6 +255,7 @@ class TestMockCreateServiceRequestUseCase:
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
             provider_service_repository=mock_provider_service_repository,
+            email_sender=mock_smtp_email_sender,
         )
 
         input_dto = CreateServiceRequestInputDTO(
@@ -257,6 +280,8 @@ class TestMockCreateServiceRequestUseCase:
         mock_provider_service_repository = MagicMock(
             spec=ProviderServiceRepositoryInterface
         )
+        mock_smtp_email_sender = MagicMock(spec=EmailSenderInterface)
+        
 
         client_id = uuid4()
         service_id = uuid4()
@@ -273,6 +298,7 @@ class TestMockCreateServiceRequestUseCase:
             user_repository=mock_user_repository,
             service_repository=mock_service_repository,
             provider_service_repository=mock_provider_service_repository,
+            email_sender=mock_smtp_email_sender,
         )
 
         input_dto = CreateServiceRequestInputDTO(

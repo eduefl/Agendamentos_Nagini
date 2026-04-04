@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+from domain.notification.email_sender_interface import EmailSenderInterface
 from infrastructure.security.settings import get_settings
 from domain.service.provider_service_repository_interface import (
     ProviderServiceRepositoryInterface,
@@ -29,11 +30,14 @@ class CreateServiceRequestUseCase:
         user_repository: userRepositoryInterface,
         service_repository: ServiceRepositoryInterface,
         provider_service_repository: ProviderServiceRepositoryInterface,
+        email_sender: EmailSenderInterface,
     ):
         self._service_request_repository = service_request_repository
         self._user_repository = user_repository
         self._service_repository = service_repository
         self._provider_service_repository = provider_service_repository
+        self._email_sender = email_sender
+
 
     def _current_reference_datetime(self, desired_datetime: datetime) -> datetime:
         if desired_datetime.tzinfo is not None:
@@ -75,16 +79,33 @@ class CreateServiceRequestUseCase:
         created_service_request = self._service_request_repository.create(
             service_request
         )
-        self._provider_service_repository.list_eligible_providers_by_service_id(
+        eligible_providers = self._provider_service_repository.list_eligible_providers_by_service_id(
             created_service_request.service_id
         )
-
-        # Encaixar aqui entrar os provedores elegíveis para o serviço solicitado, utilizando a lista retornada por list_eligible_providers_by_service_id
-
-        service_request.status = ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
+        # em implementacao futura implementar caso nao seja encontrado nenhum provider elegivel para o serviço solicitado, 
+        # e nesse caso colocar Deixar o servuice request como created apenas e nao enviar email de notificacao para os providers, 
+        # para o momento vamos seguir o caminho feliz 
+        created_service_request.status = ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
         settings = get_settings()
-        service_request.expires_at = datetime.utcnow() + timedelta(minutes=settings.expire_minutes_request)
-        created_service_request = self._service_request_repository.update(service_request)
+        created_service_request.expires_at = (
+            created_service_request.created_at
+            + timedelta(minutes=settings.expire_minutes_request)
+        )
+        created_service_request = self._service_request_repository.update(created_service_request)
+
+        for provider in eligible_providers:
+            try:
+                self._email_sender.send_service_request_notification_email(
+                    to_email=provider.provider_email,
+                    provider_name=provider.provider_name,
+                    service_name=service.name,
+                    desired_datetime=created_service_request.desired_datetime,
+                    address=created_service_request.address,
+                    expires_at=created_service_request.expires_at,
+                )
+            except Exception:
+                pass
+                # Efetuar em uma futura etapa o log caso haja algum erro 
 
 
         return CreateServiceRequestOutputDTO(
