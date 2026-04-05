@@ -1,4 +1,4 @@
-from domain.service_request.service_request_exceptions import InvalidServiceRequestDateError, ServiceRequestNotFoundError
+from domain.service_request.service_request_exceptions import InvalidServiceRequestDateError, ProviderDoesNotServeThisRequestError, ServiceRequestNotFoundError, ServiceRequestUnavailableError
 from domain.__seedwork.exceptions import ForbiddenError
 from domain.service.service_exceptions import ProviderServiceAlreadyActiveError, ProviderServiceAlreadyExistsError, ProviderServiceAlreadyInactiveError, ProviderServiceNotFoundError, ServiceNotFoundError
 from domain.security.security_exceptions import (
@@ -29,13 +29,13 @@ def raise_http_from_error(e: Exception) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     if isinstance(e, (UserNotFoundError, TaskNotFoundError, ServiceNotFoundError, ProviderServiceNotFoundError, ServiceRequestNotFoundError)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    if isinstance(e, (UserAlreadyActiveError, EmailAlreadyExistsError, ProviderServiceAlreadyExistsError, ProviderServiceAlreadyInactiveError, ProviderServiceAlreadyActiveError)):
+    if isinstance(e, (UserAlreadyActiveError, EmailAlreadyExistsError, ProviderServiceAlreadyExistsError, ProviderServiceAlreadyInactiveError, ProviderServiceAlreadyActiveError, ServiceRequestUnavailableError)):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     if isinstance(e, ActivationCodeExpiredError):
         raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(e))
     if isinstance(e, (InvalidActivationCodeError, RoleNotFoundError)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    if isinstance(e, (ValueError, RolesRequiredError, InvalidServiceRequestDateError )):
+    if isinstance(e, (ValueError, RolesRequiredError, InvalidServiceRequestDateError, ProviderDoesNotServeThisRequestError )):
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))# 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
 
     raise HTTPException(

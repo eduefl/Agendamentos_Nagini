@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
@@ -10,6 +11,7 @@ from domain.service_request.client_service_list_item_read_model import (
     ClientServiceRequestListItem,
 )
 from infrastructure.service.sqlalchemy.service_model import ServiceModel
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from domain.service_request.service_request_entity import ServiceRequest, ServiceRequestStatus
@@ -195,4 +197,48 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             )
             for sr, ps, svc in rows
         ]
-    
+
+
+    def confirm_if_available(
+        self,
+        service_request_id: UUID,
+        accepted_provider_id: UUID,
+        departure_address: str,
+        service_price: Decimal,
+        travel_price: Decimal,
+        total_price: Decimal,
+        accepted_at: datetime,
+    ) -> Optional[ServiceRequest]:
+        now = datetime.utcnow()
+
+        result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.status == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value,
+                ServiceRequestModel.expires_at > now,
+            )
+            .values(
+                accepted_provider_id=accepted_provider_id,
+                departure_address=departure_address,
+                service_price=service_price,
+                travel_price=travel_price,
+                total_price=total_price,
+                accepted_at=accepted_at,
+                status=ServiceRequestStatus.CONFIRMED.value,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+
+        if result.rowcount == 0:
+            return None
+
+        self.session.commit()
+
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+
+        return self._model_to_entity(model)

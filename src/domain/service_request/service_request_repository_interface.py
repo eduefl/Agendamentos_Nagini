@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
@@ -44,4 +46,17 @@ class ServiceRequestRepositoryInterface(ABC):
         self,
         provider_id: UUID,
     ) -> list[AvailableServiceRequestReadModel]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def confirm_if_available(
+        self,
+        service_request_id: UUID,
+        accepted_provider_id: UUID,
+        departure_address: str,
+        service_price: Decimal,
+        travel_price: Decimal,
+        total_price: Decimal,
+        accepted_at: datetime,
+    ) -> Optional[ServiceRequest]:
         raise NotImplementedError

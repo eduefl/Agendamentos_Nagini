@@ -43,6 +43,25 @@ class TestProviderServiceSqlalchemyRepository:
         session.commit()
         return service
 
+    @staticmethod
+    def _create_provider_service(
+        session,
+        provider_id,
+        service_id,
+        price=Decimal("100.00"),
+        active=True,
+    ):
+        provider_service = ProviderServiceModel(
+            id=uuid4(),
+            provider_id=provider_id,
+            service_id=service_id,
+            price=price,
+            active=active,
+        )
+        session.add(provider_service)
+        session.commit()
+        return provider_service
+    
     def test_create_provider_service(
         self,
         make_provider_service,
@@ -415,3 +434,112 @@ class TestProviderServiceSqlalchemyRepository:
             item.provider_service_id for item in eligible_providers
         }
         assert non_provider_user_service.id not in returned_provider_service_ids        
+
+
+
+    def test_returns_active_binding_when_exists(
+        self,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        provider = self._create_persisted_provider(session, make_user)
+        service = self._create_persisted_service(session)
+
+        created = self._create_provider_service(
+            session=session,
+            provider_id=provider.id,
+            service_id=service.id,
+            price=Decimal("149.90"),
+            active=True,
+        )
+
+        repo = ProviderServiceRepository(session=session)
+
+        result = repo.find_active_by_provider_and_service(
+            provider_id=provider.id,
+            service_id=service.id,
+        )
+
+        assert result is not None
+        assert result.id == created.id
+        assert result.provider_id == provider.id
+        assert result.service_id == service.id
+        assert result.price == Decimal("149.90")
+        assert result.active is True
+
+    def test_returns_none_when_binding_does_not_exist(
+        self,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        provider = self._create_persisted_provider(session, make_user)
+        service = self._create_persisted_service(session)
+
+        repo = ProviderServiceRepository(session=session)
+
+        result = repo.find_active_by_provider_and_service(
+            provider_id=provider.id,
+            service_id=service.id,
+        )
+
+        assert result is None
+
+    def test_does_not_return_inactive_binding(
+        self,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        provider = self._create_persisted_provider(session, make_user)
+        service = self._create_persisted_service(session)
+
+        self._create_provider_service(
+            session=session,
+            provider_id=provider.id,
+            service_id=service.id,
+            price=Decimal("89.90"),
+            active=False,
+        )
+
+        repo = ProviderServiceRepository(session=session)
+
+        result = repo.find_active_by_provider_and_service(
+            provider_id=provider.id,
+            service_id=service.id,
+        )
+
+        assert result is None        
+
+
+
+    def test_does_not_return_binding_from_another_service(
+        self,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        provider = self._create_persisted_provider(session, make_user)
+        service_1 = self._create_persisted_service(session)
+        service_2 = self._create_persisted_service(session)
+
+        self._create_provider_service(
+            session=session,
+            provider_id=provider.id,
+            service_id=service_1.id,
+            active=True,
+        )
+
+        repo = ProviderServiceRepository(session=session)
+
+        result = repo.find_active_by_provider_and_service(
+            provider_id=provider.id,
+            service_id=service_2.id,
+        )
+
+        assert result is None

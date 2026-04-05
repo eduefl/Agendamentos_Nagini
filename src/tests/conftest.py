@@ -2,6 +2,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -11,27 +12,10 @@ from domain.user.user_entity import User
 from domain.service.service_entity import Service
 from domain.service.provider_service_entity import ProviderService
 
-from infrastructure.api.database import Base
-
-# Se RoleModel estiver no mesmo arquivo do UserModel:
+from infrastructure.api.database import Base, get_session
+from infrastructure.api.main import app
 from infrastructure.user.sqlalchemy.user_model import RoleModel
 
-from fastapi.testclient import TestClient
-
-from infrastructure.api.main import app
-from infrastructure.api.database import get_session
-
-
-# import smtplib
-
-# @pytest.fixture(autouse=True)
-# def patch_smtp(monkeypatch):
-#     class DummySMTP:
-#         def __enter__(self): return self
-#         def __exit__(self, exc_type, exc_val, exc_tb): pass
-#         def login(self, *args, **kwargs): return None
-#         def send_message(self, *args, **kwargs): return None
-#     monkeypatch.setattr(smtplib, "SMTP_SSL", lambda *a, **kw: DummySMTP())
 
 @pytest.fixture
 def make_user():
@@ -196,3 +180,51 @@ def client(tst_db_session):
         yield test_client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def concurrent_session_factory(tmp_path):
+    """
+    Cria um banco SQLite em arquivo para testes concorrentes com múltiplas sessões/threads.
+    Também garante foreign_keys=ON e semeia as roles necessárias.
+    """
+    db_path = tmp_path / "concurrency_test.db"
+
+    engine = create_engine(
+        f"sqlite:///{db_path}",
+        future=True,
+        connect_args={"check_same_thread": False},
+    )
+
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    SessionLocal = sessionmaker(
+        bind=engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+        future=True,
+    )
+
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    seed_session = SessionLocal()
+    try:
+        existing = {r[0] for r in seed_session.query(RoleModel.name).all()}
+        for name in ("cliente", "prestador"):
+            if name not in existing:
+                seed_session.add(RoleModel(name=name))
+        seed_session.commit()
+    finally:
+        seed_session.close()
+
+    try:
+        yield SessionLocal
+    finally:
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()

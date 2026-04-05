@@ -1,4 +1,4 @@
-from domain.__seedwork.exceptions import ValidationError, NotFoundError
+from domain.__seedwork.exceptions import ConflictError, ValidationError, NotFoundError
 
 
 class InvalidServiceRequestDateError(ValidationError):
@@ -9,3 +9,13 @@ class InvalidServiceRequestDateError(ValidationError):
 class ServiceRequestNotFoundError(NotFoundError):
     def __init__(self):
         super().__init__("Service request not found")
+
+
+class ServiceRequestUnavailableError(ConflictError):
+    def __init__(self):
+        super().__init__("Solicitação não está mais disponível para aceite")
+
+
+class ProviderDoesNotServeThisRequestError(ValidationError):
+    def __init__(self):
+        super().__init__("Prestador não atende o serviço solicitado")
