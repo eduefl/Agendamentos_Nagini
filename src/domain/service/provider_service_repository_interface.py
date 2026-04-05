@@ -37,3 +37,11 @@ class ProviderServiceRepositoryInterface(ABC):
         self, service_id: UUID
     ) -> list[EligibleProviderReadModel]:
         raise NotImplementedError
+
+    @abstractmethod
+    def find_active_by_provider_and_service(
+        self,
+        provider_id: UUID,
+        service_id: UUID,
+    ) -> Optional[ProviderService]:
+        raise NotImplementedError

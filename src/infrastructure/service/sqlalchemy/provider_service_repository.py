@@ -130,6 +130,26 @@ class ProviderServiceRepository(ProviderServiceRepositoryInterface):
             for ps, user in rows
         ]
 
+    def find_active_by_provider_and_service(
+        self,
+        provider_id: UUID,
+        service_id: UUID,
+    ) -> Optional[ProviderService]:
+        provider_service_in_db = (
+            self.session.query(ProviderServiceModel)
+            .filter(
+                ProviderServiceModel.provider_id == provider_id,
+                ProviderServiceModel.service_id == service_id,
+                ProviderServiceModel.active == True,
+            )
+            .first()
+        )
+
+        if not provider_service_in_db:
+            return None
+
+        return self._to_entity(provider_service_in_db)
+
     @staticmethod
     def _to_entity(model: ProviderServiceModel) -> ProviderService:
         return ProviderService(
