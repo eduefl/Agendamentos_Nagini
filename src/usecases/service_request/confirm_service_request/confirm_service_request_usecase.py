@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from domain.service_request.service_request_entity import ServiceRequestStatus
 from domain.service_request.service_request_exceptions import (
@@ -25,10 +26,12 @@ class ConfirmServiceRequestUseCase:
         service_request_repository: ServiceRequestRepositoryInterface,
         provider_service_repository: ProviderServiceRepositoryInterface,
         travel_price_gateway: TravelPriceGatewayInterface,
+        notification_service=None,
     ):
         self._service_request_repository = service_request_repository
         self._provider_service_repository = provider_service_repository
         self._travel_price_gateway = travel_price_gateway
+        self._notification_service = notification_service
 
     def execute(
         self,
@@ -79,6 +82,13 @@ class ConfirmServiceRequestUseCase:
 
         if confirmed is None:
             raise ServiceRequestUnavailableError()
+
+        # Etapa 7 — notificar cliente e prestador (best effort)
+        if self._notification_service is not None:
+            try:
+                self._notification_service.notify(confirmed)
+            except Exception:
+                pass
 
         return ConfirmServiceRequestOutputDTO(
             service_request_id=confirmed.id,

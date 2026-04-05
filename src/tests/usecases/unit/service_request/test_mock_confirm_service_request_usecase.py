@@ -27,7 +27,7 @@ from usecases.service_request.confirm_service_request.confirm_service_request_us
 )
 
 
-def _make_use_case():
+def _make_use_case(notification_service=None):
     service_request_repo = MagicMock(spec=ServiceRequestRepositoryInterface)
     provider_service_repo = MagicMock(spec=ProviderServiceRepositoryInterface)
     travel_gateway = MagicMock(spec=TravelPriceGatewayInterface)
@@ -35,6 +35,7 @@ def _make_use_case():
         service_request_repository=service_request_repo,
         provider_service_repository=provider_service_repo,
         travel_price_gateway=travel_gateway,
+        notification_service=notification_service,
     )
     return use_case, service_request_repo, provider_service_repo, travel_gateway
 
@@ -278,3 +279,132 @@ class TestConfirmServiceRequestUseCase:
 
         output = use_case.execute(input_dto)
         assert output.total_price == expected_total
+
+    def test_calls_notification_service_after_successful_confirmation(self):
+        notification_service = MagicMock()
+        use_case, sr_repo, ps_repo, travel = _make_use_case(notification_service=notification_service)
+
+        provider_id = uuid4()
+        service_id = uuid4()
+        sr_id = uuid4()
+        service_price = Decimal("100.00")
+        travel_price = Decimal("25.00")
+        total_price = Decimal("125.00")
+        accepted_at = datetime.utcnow()
+
+        mock_sr = _make_available_service_request(service_id=service_id)
+        mock_sr.id = sr_id
+        sr_repo.find_by_id.return_value = mock_sr
+
+        mock_ps = MagicMock()
+        mock_ps.price = service_price
+        ps_repo.find_active_by_provider_and_service.return_value = mock_ps
+        travel.calculate_price.return_value = travel_price
+
+        confirmed = _make_confirmed_service_request(sr_id, provider_id, service_price, travel_price, total_price, accepted_at)
+        sr_repo.confirm_if_available.return_value = confirmed
+
+        input_dto = ConfirmServiceRequestInputDTO(
+            service_request_id=sr_id,
+            provider_id=provider_id,
+            departure_address="Rua Saída, 123",
+        )
+
+        output = use_case.execute(input_dto)
+
+        assert isinstance(output, ConfirmServiceRequestOutputDTO)
+        notification_service.notify.assert_called_once_with(confirmed)
+
+    def test_returns_success_even_if_notification_service_raises(self):
+        notification_service = MagicMock()
+        notification_service.notify.side_effect = Exception("email failure")
+        use_case, sr_repo, ps_repo, travel = _make_use_case(notification_service=notification_service)
+
+        provider_id = uuid4()
+        service_id = uuid4()
+        sr_id = uuid4()
+        service_price = Decimal("100.00")
+        travel_price = Decimal("25.00")
+        total_price = Decimal("125.00")
+        accepted_at = datetime.utcnow()
+
+        mock_sr = _make_available_service_request(service_id=service_id)
+        mock_sr.id = sr_id
+        sr_repo.find_by_id.return_value = mock_sr
+
+        mock_ps = MagicMock()
+        mock_ps.price = service_price
+        ps_repo.find_active_by_provider_and_service.return_value = mock_ps
+        travel.calculate_price.return_value = travel_price
+
+        confirmed = _make_confirmed_service_request(sr_id, provider_id, service_price, travel_price, total_price, accepted_at)
+        sr_repo.confirm_if_available.return_value = confirmed
+
+        input_dto = ConfirmServiceRequestInputDTO(
+            service_request_id=sr_id,
+            provider_id=provider_id,
+            departure_address="Rua Saída, 123",
+        )
+
+        output = use_case.execute(input_dto)
+
+        assert isinstance(output, ConfirmServiceRequestOutputDTO)
+        assert output.status == ServiceRequestStatus.CONFIRMED.value
+        notification_service.notify.assert_called_once()
+
+    def test_does_not_call_notification_service_when_confirmation_fails(self):
+        notification_service = MagicMock()
+        use_case, sr_repo, ps_repo, travel = _make_use_case(notification_service=notification_service)
+
+        mock_sr = _make_available_service_request()
+        sr_repo.find_by_id.return_value = mock_sr
+
+        mock_ps = MagicMock()
+        mock_ps.price = Decimal("80.00")
+        ps_repo.find_active_by_provider_and_service.return_value = mock_ps
+        travel.calculate_price.return_value = Decimal("20.00")
+
+        sr_repo.confirm_if_available.return_value = None
+
+        input_dto = ConfirmServiceRequestInputDTO(
+            service_request_id=mock_sr.id,
+            provider_id=uuid4(),
+            departure_address="Rua A, 1",
+        )
+
+        with pytest.raises(ServiceRequestUnavailableError):
+            use_case.execute(input_dto)
+
+        notification_service.notify.assert_not_called()
+
+    def test_does_not_call_notification_service_when_no_notification_service_injected(self):
+        use_case, sr_repo, ps_repo, travel = _make_use_case(notification_service=None)
+
+        provider_id = uuid4()
+        service_id = uuid4()
+        sr_id = uuid4()
+        service_price = Decimal("100.00")
+        travel_price = Decimal("25.00")
+        total_price = Decimal("125.00")
+        accepted_at = datetime.utcnow()
+
+        mock_sr = _make_available_service_request(service_id=service_id)
+        mock_sr.id = sr_id
+        sr_repo.find_by_id.return_value = mock_sr
+
+        mock_ps = MagicMock()
+        mock_ps.price = service_price
+        ps_repo.find_active_by_provider_and_service.return_value = mock_ps
+        travel.calculate_price.return_value = travel_price
+
+        confirmed = _make_confirmed_service_request(sr_id, provider_id, service_price, travel_price, total_price, accepted_at)
+        sr_repo.confirm_if_available.return_value = confirmed
+
+        input_dto = ConfirmServiceRequestInputDTO(
+            service_request_id=sr_id,
+            provider_id=provider_id,
+            departure_address="Rua Saída, 123",
+        )
+
+        output = use_case.execute(input_dto)
+        assert isinstance(output, ConfirmServiceRequestOutputDTO)

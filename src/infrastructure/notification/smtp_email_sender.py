@@ -1,3 +1,4 @@
+from decimal import Decimal
 import os
 import smtplib
 from datetime import datetime
@@ -74,4 +75,85 @@ Acesse a plataforma para avaliar e aceitar a solicitação.
         except Exception as exc:
             raise EmailDeliveryError(
                 "Falha ao enviar email de notificação de solicitação"
+            ) from exc
+
+
+    def send_service_request_confirmed_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        service_name: str,
+        service_price: Decimal,
+        travel_price: Decimal,
+        total_price: Decimal,
+        status: str,
+    ) -> None:
+        try:
+            remetente = os.environ["EMAIL_SENDER_ADDRESS"]
+            senha = os.environ["EMAIL_SENDER_PASSWORD"]
+
+            assunto = "Sua solicitação foi confirmada"
+            mensagem = f"""
+Olá, {client_name}!
+Sua solicitação de serviço foi confirmada.
+Serviço: {service_name}
+Valor do serviço: R$ {service_price:.2f}
+Valor do deslocamento: R$ {travel_price:.2f}
+Valor total: R$ {total_price:.2f}
+Status: {status}
+""".strip()
+
+            msg = EmailMessage()
+            msg["From"] = remetente
+            msg["To"] = client_email
+            msg["Subject"] = assunto
+            msg.set_content(mensagem)
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as email:
+                email.login(remetente, senha)
+                email.send_message(msg)
+        except Exception as exc:
+            raise EmailDeliveryError(
+                "Falha ao enviar email de confirmação para o cliente"
+            ) from exc
+
+    def send_service_request_confirmed_to_provider(
+        self,
+        provider_email: str,
+        provider_name: str,
+        service_name: str,
+        service_price: Decimal,
+        service_address: Optional[str],
+        travel_price: Decimal,
+        total_price: Decimal,
+    ) -> None:
+        try:
+            remetente = os.environ["EMAIL_SENDER_ADDRESS"]
+            senha = os.environ["EMAIL_SENDER_PASSWORD"]
+
+            endereco = service_address or "Não informado"
+
+            assunto = "Você confirmou uma solicitação de serviço"
+            mensagem = f"""
+Olá, {provider_name}!
+Você confirmou uma solicitação de serviço.
+Serviço: {service_name}
+Endereço do local do serviço: {endereco}
+Valor do serviço: R$ {service_price:.2f}
+Valor do deslocamento: R$ {travel_price:.2f}
+Valor total: R$ {total_price:.2f}
+""".strip()
+
+            msg = EmailMessage()
+            msg["From"] = remetente
+            msg["To"] = provider_email
+            msg["Subject"] = assunto
+            msg.set_content(mensagem)
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as email:
+                email.login(remetente, senha)
+                email.send_message(msg)
+        except Exception as exc:
+            raise EmailDeliveryError(
+                "Falha ao enviar email de confirmação para o prestador"
             ) from exc
