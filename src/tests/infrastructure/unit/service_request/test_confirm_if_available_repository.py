@@ -7,6 +7,7 @@ import pytest
 from domain.service_request.service_request_entity import ServiceRequest, ServiceRequestStatus
 from infrastructure.service.sqlalchemy.provider_service_model import ProviderServiceModel
 from infrastructure.service.sqlalchemy.service_model import ServiceModel
+from infrastructure.service_request.sqlalchemy.service_request_model import ServiceRequestModel
 from infrastructure.service_request.sqlalchemy.service_request_repository import (
     ServiceRequestRepository,
 )
@@ -76,11 +77,8 @@ class TestConfirmIfAvailable:
         sr = self._create_service_request(
             session, client.id, service.id, ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
         )
-        # update status and expires_at
-        sr.status = ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
-        sr.expires_at = datetime.utcnow() + timedelta(hours=1)
+
         repo = ServiceRequestRepository(session=session)
-        repo.update(sr)
 
         service_price = Decimal("100.00")
         travel_price = Decimal("20.00")
@@ -181,11 +179,7 @@ class TestConfirmIfAvailable:
         sr = self._create_service_request(
             session, client.id, service.id, ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
         )
-        # Force status to CANCELLED
-        sr.status = ServiceRequestStatus.CANCELLED.value
-        sr.expires_at = datetime.utcnow() + timedelta(hours=1)
-        # Use raw model update to bypass entity validation
-        from infrastructure.service_request.sqlalchemy.service_request_model import ServiceRequestModel
+        # Use raw model update to force a non-accepting status, bypassing entity validation
         session.query(ServiceRequestModel).filter(ServiceRequestModel.id == sr.id).update(
             {"status": ServiceRequestStatus.CANCELLED.value}
         )
