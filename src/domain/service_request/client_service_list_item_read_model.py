@@ -1,8 +1,15 @@
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
+# Expandir o read model e DTOs de saída com:
+# •	accepted_provider_id 
+# •	service_price 
+# •	travel_price 
+# •	total_price 
+# •	status 
 
 @dataclass(frozen=True)
 class ClientServiceRequestListItem:
@@ -15,3 +22,9 @@ class ClientServiceRequestListItem:
     status: str
     address: str
     created_at: Optional[datetime]
+    accepted_provider_id: Optional[UUID] = None
+    service_price: Optional[Decimal] = None
+    travel_price: Optional[Decimal] = None
+    total_price: Optional[Decimal] = None
+
+

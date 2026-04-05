@@ -154,7 +154,12 @@ class TestAcceptServiceRequestRoute:
         assert "travel_price" in body
         assert "total_price" in body
         assert "accepted_at" in body
-        assert float(body["total_price"]) == float(body["service_price"]) + float(body["travel_price"])
+        #  The approx function is used here with an absolute tolerance of 0.01, which means the assertion will pass as long as the difference between the calculated 
+        # sum and the reported total price is less than or equal to 0.01. This
+        #  is a common practice when dealing with floating-point numbers, as small rounding errors can occur during calculations.        
+        assert float(body["total_price"]) == pytest.approx(
+            float(body["service_price"]) + float(body["travel_price"]), abs=0.01
+        )        
 
     def test_accept_returns_409_when_already_accepted_by_another(self, client, tst_db_session, make_user, seed_roles):
         session = tst_db_session

@@ -1,6 +1,8 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
+
 from pydantic import BaseModel
 
 class ListMyServiceRequestsInputDTO(BaseModel):
@@ -17,3 +19,10 @@ class ListMyServiceRequestsOutputItemDTO(BaseModel):
     status: str
     address: str
     created_at: Optional[datetime]
+    accepted_provider_id: Optional[UUID]
+    service_price: Optional[Decimal]
+    travel_price: Optional[Decimal]
+    total_price: Optional[Decimal]
+
+    
+

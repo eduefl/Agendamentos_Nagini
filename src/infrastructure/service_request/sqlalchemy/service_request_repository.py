@@ -132,6 +132,10 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
                 status=model.status,
                 address=model.address,
                 created_at=model.created_at,
+                accepted_provider_id=model.accepted_provider_id,
+                service_price=model.service_price,
+                travel_price=model.travel_price,
+                total_price=model.total_price,
             )
             for model, service in models
         ]

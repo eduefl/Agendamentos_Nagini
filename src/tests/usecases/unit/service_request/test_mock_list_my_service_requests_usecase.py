@@ -40,6 +40,10 @@ class TestListMyServiceRequestsUseCase:
                 status="REQUESTED",
                 address="123 Test St",
                 created_at="2023-09-01T10:00:00",
+                accepted_provider_id=None,
+                service_price=None,
+                travel_price=None,
+                total_price=None,                
             )
         ]
 
