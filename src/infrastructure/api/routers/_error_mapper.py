@@ -1,5 +1,5 @@
 from domain.service_request.service_request_exceptions import InvalidServiceRequestDateError, ProviderDoesNotServeThisRequestError, ServiceRequestNotFoundError, ServiceRequestUnavailableError
-from domain.__seedwork.exceptions import ForbiddenError
+from domain.__seedwork.exceptions import ForbiddenError, ValidationError
 from domain.service.service_exceptions import ProviderServiceAlreadyActiveError, ProviderServiceAlreadyExistsError, ProviderServiceAlreadyInactiveError, ProviderServiceNotFoundError, ServiceNotFoundError
 from domain.security.security_exceptions import (
     ExpiredTokenError,
@@ -35,7 +35,7 @@ def raise_http_from_error(e: Exception) -> None:
         raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(e))
     if isinstance(e, (InvalidActivationCodeError, RoleNotFoundError)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    if isinstance(e, (ValueError, RolesRequiredError, InvalidServiceRequestDateError, ProviderDoesNotServeThisRequestError )):
+    if isinstance(e, (ValueError, RolesRequiredError, InvalidServiceRequestDateError, ProviderDoesNotServeThisRequestError, ValidationError )):
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))# 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
 
     raise HTTPException(

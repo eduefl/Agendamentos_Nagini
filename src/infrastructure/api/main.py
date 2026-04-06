@@ -11,6 +11,7 @@ from infrastructure.api.routers import (
     service_request_routers,
     service_routers,
 )
+from infrastructure.api.routers import provider_schedule_router
 
 from infrastructure.user.sqlalchemy.seed_roles import seed_roles
 
@@ -48,4 +49,5 @@ app.include_router(provider_service_routers.router)
 app.include_router(service_routers.router)
 app.include_router(service_request_routers.router)
 app.include_router(provider_service_request_routers.router)
+app.include_router(provider_schedule_router.router)
 

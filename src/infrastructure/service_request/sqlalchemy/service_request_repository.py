@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
+from domain.service_request.provider_confirmed_schedule_item_read_model import ProviderConfirmedScheduleItemReadModel
 from infrastructure.service.sqlalchemy.provider_service_model import ProviderServiceModel
 from domain.service_request.available_service_request_read_model import AvailableServiceRequestReadModel
 from domain.service_request.service_request_exceptions import ServiceRequestNotFoundError
@@ -246,3 +247,48 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         )
 
         return self._model_to_entity(model)
+    
+    def list_confirmed_schedule_for_provider(
+        self,
+        provider_id: UUID,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+    ) -> list[ProviderConfirmedScheduleItemReadModel]:
+        query = (
+            self.session.query(ServiceRequestModel, ServiceModel)
+            .join(ServiceModel, ServiceModel.id == ServiceRequestModel.service_id)
+            .filter(
+                ServiceRequestModel.accepted_provider_id == provider_id,
+                ServiceRequestModel.status == ServiceRequestStatus.CONFIRMED.value,
+            )
+        )
+
+        if start is not None:
+            query = query.filter(ServiceRequestModel.desired_datetime >= start)
+
+        if end is not None:
+            query = query.filter(ServiceRequestModel.desired_datetime <= end)
+
+        rows = query.order_by(
+            ServiceRequestModel.desired_datetime.asc(),
+            ServiceRequestModel.created_at.asc(),
+        ).all()
+
+        return [
+            ProviderConfirmedScheduleItemReadModel(
+                service_request_id=sr.id,
+                provider_id=sr.accepted_provider_id,
+                client_id=sr.client_id,
+                service_id=sr.service_id,
+                service_name=normalize_service_name(svc.name),
+                service_description=svc.description,
+                desired_datetime=sr.desired_datetime,
+                address=sr.address,
+                status=sr.status,
+                service_price=sr.service_price,
+                travel_price=sr.travel_price,
+                total_price=sr.total_price,
+                accepted_at=sr.accepted_at,
+            )
+            for sr, svc in rows
+        ]    

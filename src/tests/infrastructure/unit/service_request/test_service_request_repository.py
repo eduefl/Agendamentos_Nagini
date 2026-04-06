@@ -904,3 +904,153 @@ class TestServiceRequestRepository:
         assert result[1].service_id == service.id
         assert result[1].provider_service_id == provider_service.id
         assert result[1].price == provider_service.price
+    def test_list_confirmed_schedule_for_provider(self, tst_db_session, make_user):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+        user_repository = userRepository(session=session)
+
+        provider = make_user(
+            id=uuid4(),
+            name="Provider 1",
+            email="provider1@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"prestador"},
+        )
+        user_repository.add_user(provider)
+
+        client = make_user(
+            id=uuid4(),
+            name="Client 1",
+            email="client1@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        user_repository.add_user(client)
+
+        service = ServiceModel(
+            id=uuid4(),
+            name="Service 1",
+            description="Description of Service 1",
+        )
+        session.add(service)
+        session.commit()
+        accepted_at = datetime.utcnow()
+        expires_at = datetime.utcnow() + timedelta(hours=1)
+
+        confirmed_request = ServiceRequest(
+            id=uuid4(),
+            client_id=client.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            address="Address 1",
+            status=ServiceRequestStatus.CONFIRMED.value,
+            accepted_provider_id=provider.id,
+            departure_address="Rua do Prestador, 999",
+            service_price=Decimal("150.00"),
+            travel_price=Decimal("25.50"),
+            total_price=Decimal("175.50"),
+            accepted_at=accepted_at,
+            expires_at=expires_at,
+
+        )
+        repository.create(confirmed_request)
+        session.commit()
+
+        result = repository.list_confirmed_schedule_for_provider(provider.id)
+
+        assert len(result) == 1
+        assert result[0].service_request_id == confirmed_request.id
+        assert result[0].provider_id == provider.id
+        assert result[0].client_id == client.id
+        assert result[0].service_id == service.id
+        assert result[0].desired_datetime == confirmed_request.desired_datetime
+
+    def test_list_confirmed_schedule_for_provider_with_date_range(self, tst_db_session, make_user):
+        session = tst_db_session
+        repository = ServiceRequestRepository(session=session)
+        user_repository = userRepository(session=session)
+
+        provider = make_user(
+            id=uuid4(),
+            name="Provider 2",
+            email="provider2@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"prestador"},
+        )
+        user_repository.add_user(provider)
+
+        client = make_user(
+            id=uuid4(),
+            name="Client 2",
+            email="client2@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        user_repository.add_user(client)
+
+        service = ServiceModel(
+            id=uuid4(),
+            name="Service 2",
+            description="Description of Service 2",
+        )
+        session.add(service)
+        session.commit()
+        accepted_at = datetime.utcnow()
+        expires_at = datetime.utcnow() + timedelta(hours=1)
+
+        confirmed_request_within_range = ServiceRequest(
+            id=uuid4(),
+            client_id=client.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            address="Address 2",
+            status=ServiceRequestStatus.CONFIRMED.value,
+            accepted_provider_id=provider.id,
+            departure_address="Rua do Prestador, 999",
+            service_price=Decimal("150.00"),
+            travel_price=Decimal("25.50"),
+            total_price=Decimal("175.50"),
+            accepted_at=accepted_at,
+            expires_at=expires_at,
+        )
+        repository.create(confirmed_request_within_range)        
+
+        accepted_at = datetime.utcnow()
+        expires_at = datetime.utcnow() + timedelta(hours=1)
+        confirmed_request_outside_range = ServiceRequest(
+            id=uuid4(),
+            client_id=client.id,
+            service_id=service.id,
+            desired_datetime=datetime.utcnow() + timedelta(days=10),
+            address="Address 3",
+            status=ServiceRequestStatus.CONFIRMED.value,
+            accepted_provider_id=provider.id,
+            departure_address="Rua do Prestador, 999",
+            service_price=Decimal("150.00"),
+            travel_price=Decimal("25.50"),
+            total_price=Decimal("175.50"),
+            accepted_at=accepted_at,
+            expires_at=expires_at,
+
+        )
+        repository.create(confirmed_request_outside_range)        
+
+        start_date = datetime.utcnow()
+        end_date = datetime.utcnow() + timedelta(days=5)
+
+        result = repository.list_confirmed_schedule_for_provider(provider.id, start=start_date, end=end_date)
+
+        assert len(result) == 1
+        assert result[0].service_request_id == confirmed_request_within_range.id
