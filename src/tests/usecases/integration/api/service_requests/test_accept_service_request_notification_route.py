@@ -8,10 +8,14 @@ import pytest
 from domain.security.token_service_dto import CreateAccessTokenDTO
 from domain.service_request.service_request_entity import ServiceRequestStatus
 from infrastructure.security.factories.make_token_service import make_token_service
-from infrastructure.service.sqlalchemy.provider_service_model import ProviderServiceModel
+from infrastructure.service.sqlalchemy.provider_service_model import (
+    ProviderServiceModel,
+)
 from infrastructure.service.sqlalchemy.service_model import ServiceModel
 from infrastructure.user.sqlalchemy.user_repository import userRepository
-from infrastructure.service_request.sqlalchemy.service_request_model import ServiceRequestModel
+from infrastructure.service_request.sqlalchemy.service_request_model import (
+    ServiceRequestModel,
+)
 
 
 class TestAcceptServiceRequestNotificationRoute:
@@ -41,8 +45,12 @@ class TestAcceptServiceRequestNotificationRoute:
         repo.add_user(user)
         return user
 
-    def _create_available_service_request(self, session, client_id, service_id, provider_id, provider_price):
-        service_model = session.query(ServiceModel).filter(ServiceModel.id == service_id).first()
+    def _create_available_service_request(
+        self, session, client_id, service_id, provider_id, provider_price
+    ):
+        service_model = (
+            session.query(ServiceModel).filter(ServiceModel.id == service_id).first()
+        )
         assert service_model is not None
 
         sr = ServiceRequestModel(
@@ -81,7 +89,9 @@ class TestAcceptServiceRequestNotificationRoute:
         session.commit()
 
         sr = self._create_available_service_request(
-            session, client_user.id, service.id,
+            session,
+            client_user.id,
+            service.id,
             provider_id=provider.id,
             provider_price=Decimal("100.00"),
         )
@@ -94,7 +104,7 @@ class TestAcceptServiceRequestNotificationRoute:
         ):
             headers = self._make_auth_header(provider)
             response = client.patch(
-                f"/service-requests/{sr.id}/accept",
+                f"/provider-service-requests/{sr.id}/accept",
                 headers=headers,
                 json={"departure_address": "Rua Saída, 123"},
             )
@@ -106,11 +116,15 @@ class TestAcceptServiceRequestNotificationRoute:
         fake_sender.send_service_request_confirmed_to_client.assert_called_once()
         fake_sender.send_service_request_confirmed_to_provider.assert_called_once()
 
-        client_call_kwargs = fake_sender.send_service_request_confirmed_to_client.call_args.kwargs
+        client_call_kwargs = (
+            fake_sender.send_service_request_confirmed_to_client.call_args.kwargs
+        )
         assert float(client_call_kwargs["service_price"]) == 100.0
         assert client_call_kwargs["status"] == ServiceRequestStatus.CONFIRMED.value
 
-        provider_call_kwargs = fake_sender.send_service_request_confirmed_to_provider.call_args.kwargs
+        provider_call_kwargs = (
+            fake_sender.send_service_request_confirmed_to_provider.call_args.kwargs
+        )
         assert float(provider_call_kwargs["service_price"]) == 100.0
         assert provider_call_kwargs["service_address"] == "Rua Destino, 100"
 
@@ -126,14 +140,20 @@ class TestAcceptServiceRequestNotificationRoute:
         session.commit()
 
         sr = self._create_available_service_request(
-            session, client_user.id, service.id,
+            session,
+            client_user.id,
+            service.id,
             provider_id=provider.id,
             provider_price=Decimal("100.00"),
         )
 
         failing_sender = MagicMock()
-        failing_sender.send_service_request_confirmed_to_client.side_effect = Exception("SMTP error")
-        failing_sender.send_service_request_confirmed_to_provider.side_effect = Exception("SMTP error")
+        failing_sender.send_service_request_confirmed_to_client.side_effect = Exception(
+            "SMTP error"
+        )
+        failing_sender.send_service_request_confirmed_to_provider.side_effect = (
+            Exception("SMTP error")
+        )
 
         with patch(
             "infrastructure.api.factories.make_confirm_service_request_usecase.SMTPEmailSender",
@@ -141,7 +161,7 @@ class TestAcceptServiceRequestNotificationRoute:
         ):
             headers = self._make_auth_header(provider)
             response = client.patch(
-                f"/service-requests/{sr.id}/accept",
+                f"/provider-service-requests/{sr.id}/accept",
                 headers=headers,
                 json={"departure_address": "Rua Saída, 1"},
             )

@@ -29,7 +29,7 @@ class TestCreateServiceRequestRoute:
 
     def test_create_service_request_requires_auth(self, client):
         response = client.post(
-            "/service-requests/",
+            "/user-service-requests/",
             json={
                 "service_id": str(uuid4()),
                 "desired_datetime": (datetime.utcnow() + timedelta(days=1)).isoformat(),
@@ -65,7 +65,7 @@ class TestCreateServiceRequestRoute:
         headers = self._make_auth_header(provider_user)
 
         response = client.post(
-            "/service-requests/",
+            "/user-service-requests/",
             headers=headers,
             json={
                 "service_id": str(uuid4()),
@@ -111,7 +111,7 @@ class TestCreateServiceRequestRoute:
         desired_datetime = datetime.utcnow() + timedelta(days=1)
 
         response = client.post(
-            "/service-requests/",
+            "/user-service-requests/",
             headers=headers,
             json={
                 "service_id": str(service.id),
@@ -157,7 +157,7 @@ class TestCreateServiceRequestRoute:
         headers = self._make_auth_header(client_user)
 
         response = client.post(
-            "/service-requests/",
+            "/user-service-requests/",
             headers=headers,
             json={
                 "service_id": str(uuid4()),
@@ -170,8 +170,6 @@ class TestCreateServiceRequestRoute:
         body = response.json()
         assert "Service" in body["detail"]
         assert "not found" in body["detail"]
-        
-        
 
     def test_create_service_request_returns_422_when_desired_datetime_is_in_past(
         self,
@@ -206,11 +204,13 @@ class TestCreateServiceRequestRoute:
         headers = self._make_auth_header(client_user)
 
         response = client.post(
-            "/service-requests/",
+            "/user-service-requests/",
             headers=headers,
             json={
                 "service_id": str(service.id),
-                "desired_datetime": (datetime.utcnow() - timedelta(minutes=1)).isoformat(),
+                "desired_datetime": (
+                    datetime.utcnow() - timedelta(minutes=1)
+                ).isoformat(),
                 "address": "Rua B, 200",
             },
         )

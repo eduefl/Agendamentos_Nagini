@@ -33,7 +33,7 @@ class TestListMyServiceRequestsRoute:
         return {"Authorization": f"Bearer {access_token}"}
 
     def test_list_my_service_requests_requires_auth(self, client):
-        response = client.get("/service-requests/me")
+        response = client.get("/user-service-requests/me")
 
         assert response.status_code == 401
 
@@ -62,7 +62,7 @@ class TestListMyServiceRequestsRoute:
 
         headers = self._make_auth_header(prestador)
 
-        response = client.get("/service-requests/me", headers=headers)
+        response = client.get("/user-service-requests/me", headers=headers)
 
         assert response.status_code == 403
 
@@ -156,7 +156,7 @@ class TestListMyServiceRequestsRoute:
 
         headers = self._make_auth_header(client_1)
 
-        response = client.get("/service-requests/me", headers=headers)
+        response = client.get("/user-service-requests/me", headers=headers)
 
         assert response.status_code == 200
         body = response.json()
@@ -184,7 +184,6 @@ class TestListMyServiceRequestsRoute:
         assert body[1]["service_description"] == "Serviço de depilação"
         assert body[1]["status"] == "REQUESTED"
         assert body[1]["address"] == "Rua A, 123"
-
 
     def test_list_my_service_requests_returns_null_prices_before_provider_acceptance(
         self,
@@ -233,7 +232,7 @@ class TestListMyServiceRequestsRoute:
 
         headers = self._make_auth_header(client_user)
 
-        response = client.get("/service-requests/me", headers=headers)
+        response = client.get("/user-service-requests/me", headers=headers)
 
         assert response.status_code == 200
         body = response.json()
@@ -311,7 +310,7 @@ class TestListMyServiceRequestsRoute:
 
         headers = self._make_auth_header(client_user)
 
-        response = client.get("/service-requests/me", headers=headers)
+        response = client.get("/user-service-requests/me", headers=headers)
 
         assert response.status_code == 200
         body = response.json()
@@ -397,7 +396,7 @@ class TestListMyServiceRequestsRoute:
 
         headers = self._make_auth_header(client_a)
 
-        response = client.get("/service-requests/me", headers=headers)
+        response = client.get("/user-service-requests/me", headers=headers)
 
         assert response.status_code == 200
         body = response.json()
@@ -434,7 +433,7 @@ class TestListMyServiceRequestsRoute:
 
         headers = self._make_auth_header(client_user)
 
-        response = client.get("/service-requests/me", headers=headers)
+        response = client.get("/user-service-requests/me", headers=headers)
 
         assert response.status_code == 200
         assert response.json() == []

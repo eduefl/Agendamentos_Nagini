@@ -10,7 +10,7 @@ from domain.user.user_entity import User
 from infrastructure.api.database import get_session
 from infrastructure.api.routers._error_mapper import raise_http_from_error
 
-router = APIRouter(prefix="/services", tags=["Services"])
+router = APIRouter(prefix="/services", tags=["Service Catalog"])
 
 
 @router.get("/", response_model=list[ListServicesOutputItemDTO])

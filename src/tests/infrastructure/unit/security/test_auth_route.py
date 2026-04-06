@@ -45,7 +45,7 @@ class TestListMyServiceRequestsAuthRoute:
         )
 
         response = client.get(
-            "/service-requests/me",
+            "/user-service-requests/me",
             headers={"Authorization": "Bearer expired-token"},
         )
 
@@ -66,7 +66,7 @@ class TestListMyServiceRequestsAuthRoute:
         )
 
         response = client.get(
-            "/service-requests/me",
+            "/user-service-requests/me",
             headers={"Authorization": "Bearer invalid-token"},
         )
 
@@ -78,7 +78,7 @@ class TestListMyServiceRequestsAuthRoute:
         self,
         client: TestClient,
     ):
-        response = client.get("/service-requests/me")
+        response = client.get("/user-service-requests/me")
 
         assert response.status_code == 401
         body = response.json()
@@ -122,7 +122,7 @@ class TestListMyServiceRequestsAuthRoute:
         )
 
         response = client.get(
-            "/service-requests/me",
+            "/user-service-requests/me",
             headers={"Authorization": "Bearer valid-token"},
         )
 
