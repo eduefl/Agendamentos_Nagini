@@ -13,6 +13,19 @@ class ServiceRequestStatus(str, Enum):
     DECLINED = "DECLINED"
     CANCELLED = "CANCELLED"
     EXPIRED = "EXPIRED"
+    # Fase 1 — estados operacionais pós-confirmação
+    IN_TRANSIT = "IN_TRANSIT"
+    IN_PROGRESS = "IN_PROGRESS"
+    ARRIVED = "ARRIVED"
+
+
+# Conjunto de status que representam o ciclo operacional (pós-confirmação)
+_OPERATIONAL_STATUSES = {
+    ServiceRequestStatus.CONFIRMED.value,
+    ServiceRequestStatus.IN_TRANSIT.value,
+    ServiceRequestStatus.IN_PROGRESS.value,
+    ServiceRequestStatus.ARRIVED.value,
+}
 
 
 class ServiceRequest:
@@ -32,6 +45,18 @@ class ServiceRequest:
         total_price: Optional[Decimal] = None,
         accepted_at: Optional[datetime] = None,
         expires_at: Optional[datetime] = None,
+        # Campos de deslocamento (Fase 1)
+        travel_started_at: Optional[datetime] = None,
+        route_calculated_at: Optional[datetime] = None,
+        estimated_arrival_at: Optional[datetime] = None,
+        travel_duration_minutes: Optional[int] = None,
+        travel_distance_km: Optional[Decimal] = None,
+        # Campos de chegada / início do serviço (Fase 1)
+        provider_arrived_at: Optional[datetime] = None,
+        client_confirmed_provider_arrival_at: Optional[datetime] = None,
+        service_started_at: Optional[datetime] = None,
+        # Rastreabilidade da ACL Logística (Fase 1)
+        logistics_reference: Optional[str] = None,
     ):
         self.id = id
         self.client_id = client_id
@@ -47,6 +72,15 @@ class ServiceRequest:
         self.total_price = total_price
         self.accepted_at = accepted_at
         self.expires_at = expires_at
+        self.travel_started_at = travel_started_at
+        self.route_calculated_at = route_calculated_at
+        self.estimated_arrival_at = estimated_arrival_at
+        self.travel_duration_minutes = travel_duration_minutes
+        self.travel_distance_km = travel_distance_km
+        self.provider_arrived_at = provider_arrived_at
+        self.client_confirmed_provider_arrival_at = client_confirmed_provider_arrival_at
+        self.service_started_at = service_started_at
+        self.logistics_reference = logistics_reference
 
         self.validate()
 
@@ -120,11 +154,47 @@ class ServiceRequest:
 
         if self.expires_at is not None and not isinstance(self.expires_at, datetime):
             raise ValueError("Expires at must be a datetime or None.")
+
+        if self.travel_started_at is not None and not isinstance(self.travel_started_at, datetime):
+            raise ValueError("travel_started_at must be a datetime or None.")
+
+        if self.route_calculated_at is not None and not isinstance(self.route_calculated_at, datetime):
+            raise ValueError("route_calculated_at must be a datetime or None.")
+
+        if self.estimated_arrival_at is not None and not isinstance(self.estimated_arrival_at, datetime):
+            raise ValueError("estimated_arrival_at must be a datetime or None.")
+
+        if self.travel_duration_minutes is not None and not isinstance(self.travel_duration_minutes, int):
+            raise ValueError("travel_duration_minutes must be an int or None.")
+
+        if self.travel_distance_km is not None and not isinstance(self.travel_distance_km, Decimal):
+            raise ValueError("travel_distance_km must be a Decimal or None.")
+
+        if self.provider_arrived_at is not None and not isinstance(self.provider_arrived_at, datetime):
+            raise ValueError("provider_arrived_at must be a datetime or None.")
+
+        if self.client_confirmed_provider_arrival_at is not None and not isinstance(
+            self.client_confirmed_provider_arrival_at, datetime
+        ):
+            raise ValueError("client_confirmed_provider_arrival_at must be a datetime or None.")
+
+        if self.service_started_at is not None and not isinstance(self.service_started_at, datetime):
+            raise ValueError("service_started_at must be a datetime or None.")
+
+        if self.logistics_reference is not None and not isinstance(self.logistics_reference, str):
+            raise ValueError("logistics_reference must be a string or None.")
+
         self._validate_non_confirmed_cancelled_state()
+        self._validate_no_travel_fields_in_pre_operational_state()
         self._validate_confirmed_state()
+        self._validate_in_transit_state()
+        self._validate_arrived_state()
+        self._validate_in_progress_state()
         self._validate_total_price_consistency()
+        self._validate_operational_temporal_order()
 
         return True
+
     def _validate_confirmed_state(self) -> bool:
         if self.status != ServiceRequestStatus.CONFIRMED.value:
             return True
@@ -146,6 +216,146 @@ class ServiceRequest:
 
         if self.accepted_at is None:
             raise ValueError("Confirmed service request must have accepted_at.")
+
+
+        return True
+
+    def _validate_in_transit_state(self) -> bool:
+        if self.status != ServiceRequestStatus.IN_TRANSIT.value:
+            return True
+
+        if self.accepted_provider_id is None:
+            raise ValueError("IN_TRANSIT service request must have accepted_provider_id.")
+
+        if not self.departure_address:
+            raise ValueError("IN_TRANSIT service request must have departure_address.")
+
+        if self.service_price is None:
+            raise ValueError("IN_TRANSIT service request must have service_price.")
+
+        if self.travel_price is None:
+            raise ValueError("IN_TRANSIT service request must have travel_price.")
+
+        if self.total_price is None:
+            raise ValueError("IN_TRANSIT service request must have total_price.")
+
+        if self.accepted_at is None:
+            raise ValueError("IN_TRANSIT service request must have accepted_at.")
+
+        if self.travel_started_at is None:
+            raise ValueError("IN_TRANSIT service request must have travel_started_at.")
+
+        if self.route_calculated_at is None:
+            raise ValueError("IN_TRANSIT service request must have route_calculated_at.")
+
+        if self.estimated_arrival_at is None:
+            raise ValueError("IN_TRANSIT service request must have estimated_arrival_at.")
+
+        if self.travel_duration_minutes is None:
+            raise ValueError("IN_TRANSIT service request must have travel_duration_minutes.")
+
+        # IN_TRANSIT não deve ter campos de chegada ou início de serviço
+        if self.provider_arrived_at is not None:
+            raise ValueError("IN_TRANSIT service request must not have provider_arrived_at.")
+
+        if self.service_started_at is not None:
+            raise ValueError("IN_TRANSIT service request must not have service_started_at.")
+
+        return True
+
+    def _validate_arrived_state(self) -> bool:
+        if self.status != ServiceRequestStatus.ARRIVED.value:
+            return True
+
+        if self.accepted_provider_id is None:
+            raise ValueError("ARRIVED service request must have accepted_provider_id.")
+
+        if not self.departure_address:
+            raise ValueError("ARRIVED service request must have departure_address.")
+
+        if self.service_price is None:
+            raise ValueError("ARRIVED service request must have service_price.")
+
+        if self.travel_price is None:
+            raise ValueError("ARRIVED service request must have travel_price.")
+
+        if self.total_price is None:
+            raise ValueError("ARRIVED service request must have total_price.")
+
+        if self.accepted_at is None:
+            raise ValueError("ARRIVED service request must have accepted_at.")
+
+        if self.travel_started_at is None:
+            raise ValueError("ARRIVED service request must have travel_started_at.")
+
+        if self.route_calculated_at is None:
+            raise ValueError("ARRIVED service request must have route_calculated_at.")
+
+        if self.estimated_arrival_at is None:
+            raise ValueError("ARRIVED service request must have estimated_arrival_at.")
+
+        if self.travel_duration_minutes is None:
+            raise ValueError("ARRIVED service request must have travel_duration_minutes.")
+
+        if self.provider_arrived_at is None:
+            raise ValueError("ARRIVED service request must have provider_arrived_at.")
+
+        # ARRIVED não deve ter campos de início de serviço
+        if self.service_started_at is not None:
+            raise ValueError("ARRIVED service request must not have service_started_at.")
+
+        if self.client_confirmed_provider_arrival_at is not None:
+            raise ValueError(
+                "ARRIVED service request must not have client_confirmed_provider_arrival_at."
+            )
+
+        return True
+
+    def _validate_in_progress_state(self) -> bool:
+        if self.status != ServiceRequestStatus.IN_PROGRESS.value:
+            return True
+
+        if self.accepted_provider_id is None:
+            raise ValueError("IN_PROGRESS service request must have accepted_provider_id.")
+
+        if not self.departure_address:
+            raise ValueError("IN_PROGRESS service request must have departure_address.")
+
+        if self.service_price is None:
+            raise ValueError("IN_PROGRESS service request must have service_price.")
+
+        if self.travel_price is None:
+            raise ValueError("IN_PROGRESS service request must have travel_price.")
+
+        if self.total_price is None:
+            raise ValueError("IN_PROGRESS service request must have total_price.")
+
+        if self.accepted_at is None:
+            raise ValueError("IN_PROGRESS service request must have accepted_at.")
+
+        if self.travel_started_at is None:
+            raise ValueError("IN_PROGRESS service request must have travel_started_at.")
+
+        if self.route_calculated_at is None:
+            raise ValueError("IN_PROGRESS service request must have route_calculated_at.")
+
+        if self.estimated_arrival_at is None:
+            raise ValueError("IN_PROGRESS service request must have estimated_arrival_at.")
+
+        if self.travel_duration_minutes is None:
+            raise ValueError("IN_PROGRESS service request must have travel_duration_minutes.")
+
+        if self.provider_arrived_at is None:
+            raise ValueError("IN_PROGRESS service request must have provider_arrived_at.")
+
+        if self.client_confirmed_provider_arrival_at is None:
+            raise ValueError(
+                "IN_PROGRESS service request must have client_confirmed_provider_arrival_at."
+            )
+
+        if self.service_started_at is None:
+            raise ValueError("IN_PROGRESS service request must have service_started_at.")
+
         return True
 
     def _validate_total_price_consistency(self) -> bool:
@@ -168,7 +378,9 @@ class ServiceRequest:
         return True
 
     def _validate_non_confirmed_cancelled_state(self) -> bool:
-        if self.status in {ServiceRequestStatus.CONFIRMED.value, ServiceRequestStatus.CANCELLED.value}:
+        # Status que permitem campos de aceitação/precificação
+        statuses_with_acceptance = _OPERATIONAL_STATUSES | {ServiceRequestStatus.CANCELLED.value}
+        if self.status in statuses_with_acceptance:
             return True
 
         acceptance_fields = [
@@ -184,4 +396,51 @@ class ServiceRequest:
             raise ValueError(
                 "Only confirmed or cancelled service requests can have acceptance and pricing fields filled."
             )
+        return True
+
+    def _validate_no_travel_fields_in_pre_operational_state(self) -> bool:
+        """Rejeita campos do ciclo operacional (deslocamento/chegada) em status pré-operacionais."""
+        if self.status in _OPERATIONAL_STATUSES and self.status != ServiceRequestStatus.CONFIRMED.value:
+            return True
+
+        travel_fields = [
+            self.travel_started_at,
+            self.route_calculated_at,
+            self.estimated_arrival_at,
+            self.travel_duration_minutes,
+            self.travel_distance_km,
+            self.provider_arrived_at,
+            self.client_confirmed_provider_arrival_at,
+            self.service_started_at,
+        ]
+
+        if any(field is not None for field in travel_fields):
+            raise ValueError(
+                "Travel and arrival fields can only be set on operational service requests (IN_TRANSIT,IN_PROGRESS OR  ARRIVED)."            )
+        return True
+
+    def _validate_operational_temporal_order(self) -> bool:
+        """Valida a coerência temporal entre os campos do ciclo operacional."""
+        pairs = [
+            (self.accepted_at, self.travel_started_at, "accepted_at", "travel_started_at"),
+            (self.travel_started_at, self.estimated_arrival_at, "travel_started_at", "estimated_arrival_at"),
+            (self.travel_started_at, self.provider_arrived_at, "travel_started_at", "provider_arrived_at"),
+            (
+                self.provider_arrived_at,
+                self.client_confirmed_provider_arrival_at,
+                "provider_arrived_at",
+                "client_confirmed_provider_arrival_at",
+            ),
+            (
+                self.client_confirmed_provider_arrival_at,
+                self.service_started_at,
+                "client_confirmed_provider_arrival_at",
+                "service_started_at",
+            ),
+        ]
+        for earlier, later, earlier_name, later_name in pairs:
+            if earlier is not None and later is not None and earlier > later:
+                raise ValueError(
+                    f"{earlier_name} must not be after {later_name}."
+                )
         return True

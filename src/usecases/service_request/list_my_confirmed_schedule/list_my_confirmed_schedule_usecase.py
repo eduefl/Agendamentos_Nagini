@@ -37,7 +37,7 @@ class ListMyConfirmedScheduleUseCase:
             if input_dto.start > input_dto.end:
                 raise ValidationError("start deve ser menor ou igual a end")
 
-        items = self.service_request_repository.list_confirmed_schedule_for_provider(
+        items = self.service_request_repository.list_operational_schedule_for_provider(
             provider_id=input_dto.provider_id,
             start=input_dto.start,
             end=input_dto.end,
@@ -57,6 +57,11 @@ class ListMyConfirmedScheduleUseCase:
                 travel_price=item.travel_price,
                 total_price=item.total_price,
                 accepted_at=item.accepted_at,
+                travel_started_at=item.travel_started_at,
+                estimated_arrival_at=item.estimated_arrival_at,
+                travel_duration_minutes=item.travel_duration_minutes,
+                provider_arrived_at=item.provider_arrived_at,
+                service_started_at=item.service_started_at,
             )
             for item in items
         ]

@@ -51,6 +51,12 @@ class ListMyServiceRequestsUseCase:
                 service_price=item.service_price,
                 travel_price=item.travel_price,
                 total_price=item.total_price,
+                travel_started_at=item.travel_started_at,
+                estimated_arrival_at=item.estimated_arrival_at,
+                travel_duration_minutes=item.travel_duration_minutes,
+                travel_distance_km=item.travel_distance_km,
+                provider_arrived_at=item.provider_arrived_at,
+                service_started_at=item.service_started_at,
             )
             for item in items
         ]

@@ -44,6 +44,12 @@ class TestListMyServiceRequestsUseCase:
                 service_price=None,
                 travel_price=None,
                 total_price=None,                
+                travel_started_at=None,
+                estimated_arrival_at=None,
+                travel_duration_minutes=None,
+                travel_distance_km=None,
+                provider_arrived_at=None,
+                service_started_at=None,                
             )
         ]
 

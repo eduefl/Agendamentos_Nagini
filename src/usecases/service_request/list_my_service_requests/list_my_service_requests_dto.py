@@ -23,6 +23,12 @@ class ListMyServiceRequestsOutputItemDTO(BaseModel):
     service_price: Optional[Decimal]
     travel_price: Optional[Decimal]
     total_price: Optional[Decimal]
-
+    # Fase 1 — campos do ciclo operacional
+    travel_started_at: Optional[datetime] = None
+    estimated_arrival_at: Optional[datetime] = None
+    travel_duration_minutes: Optional[int] = None
+    travel_distance_km: Optional[Decimal] = None
+    provider_arrived_at: Optional[datetime] = None
+    service_started_at: Optional[datetime] = None
     
 

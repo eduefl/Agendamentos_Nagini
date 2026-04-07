@@ -2,7 +2,7 @@ from datetime import datetime
 import uuid
 
 from infrastructure.api.database import Base
-from sqlalchemy import Column, DateTime, ForeignKey, String, Numeric
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -44,6 +44,21 @@ class ServiceRequestModel(Base):
     total_price = Column(Numeric(10, 2), nullable=True)
     accepted_at = Column(DateTime, nullable=True)
     expires_at = Column(DateTime, nullable=True)
+
+    # Fase 1 — campos de deslocamento
+    travel_started_at = Column(DateTime, nullable=True)
+    route_calculated_at = Column(DateTime, nullable=True)
+    estimated_arrival_at = Column(DateTime, nullable=True)
+    travel_duration_minutes = Column(Integer, nullable=True)
+    travel_distance_km = Column(Numeric(10, 2), nullable=True)
+
+    # Fase 1 — campos de chegada / início do serviço
+    provider_arrived_at = Column(DateTime, nullable=True)
+    client_confirmed_provider_arrival_at = Column(DateTime, nullable=True)
+    service_started_at = Column(DateTime, nullable=True)
+
+    # Fase 1 — rastreabilidade da ACL Logística
+    logistics_reference = Column(String, nullable=True)
 
     client = relationship(
         "UserModel",

@@ -4,8 +4,12 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from domain.service_request.provider_confirmed_schedule_item_read_model import ProviderConfirmedScheduleItemReadModel
-from domain.service_request.available_service_request_read_model import AvailableServiceRequestReadModel
+from domain.service_request.provider_operational_schedule_item_read_model import (
+    ProviderOperationalScheduleItemReadModel,
+)
+from domain.service_request.available_service_request_read_model import (
+    AvailableServiceRequestReadModel,
+)
 from domain.service_request.client_service_list_item_read_model import (
     ClientServiceRequestListItem,
 )
@@ -37,7 +41,7 @@ class ServiceRequestRepositoryInterface(ABC):
         client_id: UUID,
     ) -> list[ClientServiceRequestListItem]:
         raise NotImplementedError
-    
+
     @abstractmethod
     def update(self, service_request: ServiceRequest) -> ServiceRequest:
         raise NotImplementedError
@@ -63,10 +67,10 @@ class ServiceRequestRepositoryInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def list_confirmed_schedule_for_provider(
+    def list_operational_schedule_for_provider(
         self,
         provider_id: UUID,
         start: Optional[datetime] = None,
         end: Optional[datetime] = None,
-    ) -> list[ProviderConfirmedScheduleItemReadModel]:
+    ) -> list[ProviderOperationalScheduleItemReadModel]:
         raise NotImplementedError

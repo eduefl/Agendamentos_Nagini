@@ -2,8 +2,12 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
-from infrastructure.service.sqlalchemy.provider_service_repository import ProviderServiceRepository
-from domain.service_request.service_request_exceptions import ServiceRequestNotFoundError
+from infrastructure.service.sqlalchemy.provider_service_repository import (
+    ProviderServiceRepository,
+)
+from domain.service_request.service_request_exceptions import (
+    ServiceRequestNotFoundError,
+)
 import pytest
 from sqlalchemy.exc import IntegrityError
 
@@ -56,7 +60,9 @@ class TestServiceRequestRepository:
         return provider
 
     @staticmethod
-    def _create_persisted_service(session, service_id=None, name=None, description=None):
+    def _create_persisted_service(
+        session, service_id=None, name=None, description=None
+    ):
         service = ServiceModel(
             id=service_id or uuid4(),
             name=name or f"Serviço {uuid4()}",
@@ -265,13 +271,14 @@ class TestServiceRequestRepository:
 
         assert result == []
 
-    def test_list_by_client_id_with_service_data(self, tst_db_session, make_user, make_service , seed_roles):
+    def test_list_by_client_id_with_service_data(
+        self, tst_db_session, make_user, make_service, seed_roles
+    ):
         session = tst_db_session
         repository = ServiceRequestRepository(session=session)
         user_repository = userRepository(session=session)
         service_repository = ServiceRepository(session=session)
 
-        
         # Create a user and services
         user = make_user()
         another_user = make_user()
@@ -292,7 +299,6 @@ class TestServiceRequestRepository:
         service_repository.create_service(service2)
         service_repository.create_service(service3)
 
-        
         # Create service requests
         service_request1 = ServiceRequest(
             id=uuid4(),
@@ -300,7 +306,7 @@ class TestServiceRequestRepository:
             service_id=service1.id,
             desired_datetime=datetime.utcnow() + timedelta(days=1),
             address="Rua 1",
-            created_at=datetime.utcnow() ,
+            created_at=datetime.utcnow(),
         )
         service_request2 = ServiceRequest(
             id=uuid4(),
@@ -308,9 +314,8 @@ class TestServiceRequestRepository:
             service_id=service2.id,
             desired_datetime=datetime.utcnow() + timedelta(days=2),
             address="Rua 2",
-            created_at=datetime.utcnow() ,
+            created_at=datetime.utcnow(),
         )
-        
 
         service_request3 = ServiceRequest(
             id=uuid4(),
@@ -318,7 +323,7 @@ class TestServiceRequestRepository:
             service_id=service3.id,
             desired_datetime=datetime.utcnow() + timedelta(days=1),
             address="Rua 1",
-            created_at=datetime.utcnow() ,
+            created_at=datetime.utcnow(),
         )
         repository.create(service_request1)
         repository.create(service_request2)
@@ -329,15 +334,17 @@ class TestServiceRequestRepository:
 
         # Assert that the result contains the correct service data in order the service requests were created (newest first)
         assert len(result) == 2
-        assert result[1].service_name == "Serviço de Entrega de Cartas" #Capitalize first letter and lowercase the rest
-        assert result[1].service_description == "SErViçO de Entrega de Cartas" #Not normalized
+        assert (
+            result[1].service_name == "Serviço de Entrega de Cartas"
+        )  # Capitalize first letter and lowercase the rest
+        assert (
+            result[1].service_description == "SErViçO de Entrega de Cartas"
+        )  # Not normalized
         assert result[1].client_id == user.id
 
         assert result[0].service_name == "Serviço de Leitura de Mãos"
         assert result[0].service_description == "SErViçO de Leitura de Mãos"
         assert result[0].client_id == user.id
-
-
 
     def test_create_should_persist_new_acceptance_fields(
         self,
@@ -610,8 +617,7 @@ class TestServiceRequestRepository:
 
         assert len(result) == 1
         assert (
-            result[0].status
-            == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
+            result[0].status == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
         )
         assert result[0].accepted_provider_id is None
         assert result[0].departure_address is None
@@ -691,9 +697,10 @@ class TestServiceRequestRepository:
         assert result[0].travel_price == Decimal("35.00")
         assert result[0].total_price == Decimal("235.00")
         assert result[0].accepted_at == accepted_at
-    
-    
-    def test_update_service_request_should_update_existing_request(self, tst_db_session, make_user, make_service):
+
+    def test_update_service_request_should_update_existing_request(
+        self, tst_db_session, make_user, make_service
+    ):
         session = tst_db_session
         repository = ServiceRequestRepository(session=session)
         user_repository = userRepository(session=session)
@@ -730,7 +737,7 @@ class TestServiceRequestRepository:
 
         # Update the service request
         entity.address = "Rua das Flores, 456"
-        timeexpire =  datetime.utcnow() + timedelta(hours=1)
+        timeexpire = datetime.utcnow() + timedelta(hours=1)
         entity.status = ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
         entity.expires_at = timeexpire
         updated = repository.update(entity)
@@ -740,10 +747,17 @@ class TestServiceRequestRepository:
         assert updated.status == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
         assert updated.expires_at == timeexpire
 
-        persisted_model = session.query(ServiceRequestModel).filter(ServiceRequestModel.id == created.id).first()
+        persisted_model = (
+            session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == created.id)
+            .first()
+        )
         assert persisted_model is not None
         assert persisted_model.address == "Rua das Flores, 456"
-        assert persisted_model.status == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
+        assert (
+            persisted_model.status
+            == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
+        )
         assert persisted_model.expires_at == timeexpire
 
     def test_update_service_request_should_raise_not_found_error(self, tst_db_session):
@@ -760,7 +774,7 @@ class TestServiceRequestRepository:
 
         with pytest.raises(ServiceRequestNotFoundError):
             repository.update(non_existent_request)
-    
+
     def test_list_available_for_provider_should_return_available_service_requests(
         self,
         tst_db_session,
@@ -771,7 +785,7 @@ class TestServiceRequestRepository:
     ):
         session = tst_db_session
         repository = ServiceRequestRepository(session=session)
-        Prov_serv  = ProviderServiceRepository(session=session)
+        Prov_serv = ProviderServiceRepository(session=session)
 
         provider = self._create_persisted_provider(session, make_user)
         client = self._create_persisted_client(session, make_user)
@@ -784,7 +798,7 @@ class TestServiceRequestRepository:
         provider_service = make_provider_service(
             provider_id=provider.id,
             service_id=service.id,
-            price=Decimal('100.00'),
+            price=Decimal("100.00"),
             active=True,
         )
         Prov_serv.create_provider_service(provider_service)
@@ -835,7 +849,6 @@ class TestServiceRequestRepository:
 
         assert result == []
 
-
     def test_list_available_for_provider_should_return_available_service_requests_order(
         self,
         tst_db_session,
@@ -846,12 +859,12 @@ class TestServiceRequestRepository:
     ):
         session = tst_db_session
         repository = ServiceRequestRepository(session=session)
-        Prov_serv  = ProviderServiceRepository(session=session)
+        Prov_serv = ProviderServiceRepository(session=session)
 
         provider = self._create_persisted_provider(session, make_user)
         client1 = self._create_persisted_client(session, make_user)
         client2 = self._create_persisted_client(session, make_user)
-        
+
         service = self._create_persisted_service(
             session,
             name="Serviço 1",
@@ -861,7 +874,7 @@ class TestServiceRequestRepository:
         provider_service = make_provider_service(
             provider_id=provider.id,
             service_id=service.id,
-            price=Decimal('100.00'),
+            price=Decimal("100.00"),
             active=True,
         )
         Prov_serv.create_provider_service(provider_service)
@@ -877,7 +890,6 @@ class TestServiceRequestRepository:
             expires_at=datetime.utcnow() + timedelta(days=2),
         )
         repository.create(service_request1)
-
 
         service_request2 = ServiceRequest(
             id=uuid4(),
@@ -904,7 +916,8 @@ class TestServiceRequestRepository:
         assert result[1].service_id == service.id
         assert result[1].provider_service_id == provider_service.id
         assert result[1].price == provider_service.price
-    def test_list_confirmed_schedule_for_provider(self, tst_db_session, make_user):
+
+    def test_list_operational_schedule_for_provider(self, tst_db_session, make_user):
         session = tst_db_session
         repository = ServiceRequestRepository(session=session)
         user_repository = userRepository(session=session)
@@ -957,12 +970,11 @@ class TestServiceRequestRepository:
             total_price=Decimal("175.50"),
             accepted_at=accepted_at,
             expires_at=expires_at,
-
         )
         repository.create(confirmed_request)
         session.commit()
 
-        result = repository.list_confirmed_schedule_for_provider(provider.id)
+        result = repository.list_operational_schedule_for_provider(provider.id)
 
         assert len(result) == 1
         assert result[0].service_request_id == confirmed_request.id
@@ -971,7 +983,9 @@ class TestServiceRequestRepository:
         assert result[0].service_id == service.id
         assert result[0].desired_datetime == confirmed_request.desired_datetime
 
-    def test_list_confirmed_schedule_for_provider_with_date_range(self, tst_db_session, make_user):
+    def test_list_operational_schedule_for_provider_with_date_range(
+        self, tst_db_session, make_user
+    ):
         session = tst_db_session
         repository = ServiceRequestRepository(session=session)
         user_repository = userRepository(session=session)
@@ -1025,7 +1039,7 @@ class TestServiceRequestRepository:
             accepted_at=accepted_at,
             expires_at=expires_at,
         )
-        repository.create(confirmed_request_within_range)        
+        repository.create(confirmed_request_within_range)
 
         accepted_at = datetime.utcnow()
         expires_at = datetime.utcnow() + timedelta(hours=1)
@@ -1043,14 +1057,15 @@ class TestServiceRequestRepository:
             total_price=Decimal("175.50"),
             accepted_at=accepted_at,
             expires_at=expires_at,
-
         )
-        repository.create(confirmed_request_outside_range)        
+        repository.create(confirmed_request_outside_range)
 
         start_date = datetime.utcnow()
         end_date = datetime.utcnow() + timedelta(days=5)
 
-        result = repository.list_confirmed_schedule_for_provider(provider.id, start=start_date, end=end_date)
+        result = repository.list_operational_schedule_for_provider(
+            provider.id, start=start_date, end=end_date
+        )
 
         assert len(result) == 1
         assert result[0].service_request_id == confirmed_request_within_range.id

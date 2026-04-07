@@ -60,10 +60,12 @@ class TestListMyConfirmedScheduleUseCase:
     def test_success_returns_confirmed_items(self):
         use_case, mock_sr_repo, mock_user_repo = self._make_use_case()
         provider_id = uuid4()
-        mock_user_repo.find_user_by_id.return_value = self._make_active_provider(provider_id)
+        mock_user_repo.find_user_by_id.return_value = self._make_active_provider(
+            provider_id
+        )
 
         item = _make_schedule_item(provider_id=provider_id)
-        mock_sr_repo.list_confirmed_schedule_for_provider.return_value = [item]
+        mock_sr_repo.list_operational_schedule_for_provider.return_value = [item]
 
         input_dto = ListMyConfirmedScheduleInputDTO(provider_id=provider_id)
         output = use_case.execute(input_dto)
@@ -72,7 +74,7 @@ class TestListMyConfirmedScheduleUseCase:
         assert isinstance(output[0], ListMyConfirmedScheduleOutputItemDTO)
         assert output[0].status == "CONFIRMED"
         mock_user_repo.find_user_by_id.assert_called_once_with(provider_id)
-        mock_sr_repo.list_confirmed_schedule_for_provider.assert_called_once_with(
+        mock_sr_repo.list_operational_schedule_for_provider.assert_called_once_with(
             provider_id=provider_id,
             start=None,
             end=None,
@@ -81,8 +83,10 @@ class TestListMyConfirmedScheduleUseCase:
     def test_success_empty_list(self):
         use_case, mock_sr_repo, mock_user_repo = self._make_use_case()
         provider_id = uuid4()
-        mock_user_repo.find_user_by_id.return_value = self._make_active_provider(provider_id)
-        mock_sr_repo.list_confirmed_schedule_for_provider.return_value = []
+        mock_user_repo.find_user_by_id.return_value = self._make_active_provider(
+            provider_id
+        )
+        mock_sr_repo.list_operational_schedule_for_provider.return_value = []
 
         input_dto = ListMyConfirmedScheduleInputDTO(provider_id=provider_id)
         output = use_case.execute(input_dto)
@@ -92,15 +96,19 @@ class TestListMyConfirmedScheduleUseCase:
     def test_success_passes_start_and_end_to_repository(self):
         use_case, mock_sr_repo, mock_user_repo = self._make_use_case()
         provider_id = uuid4()
-        mock_user_repo.find_user_by_id.return_value = self._make_active_provider(provider_id)
-        mock_sr_repo.list_confirmed_schedule_for_provider.return_value = []
+        mock_user_repo.find_user_by_id.return_value = self._make_active_provider(
+            provider_id
+        )
+        mock_sr_repo.list_operational_schedule_for_provider.return_value = []
 
         start = datetime(2026, 4, 1, 0, 0, 0)
         end = datetime(2026, 4, 30, 23, 59, 59)
-        input_dto = ListMyConfirmedScheduleInputDTO(provider_id=provider_id, start=start, end=end)
+        input_dto = ListMyConfirmedScheduleInputDTO(
+            provider_id=provider_id, start=start, end=end
+        )
         use_case.execute(input_dto)
 
-        mock_sr_repo.list_confirmed_schedule_for_provider.assert_called_once_with(
+        mock_sr_repo.list_operational_schedule_for_provider.assert_called_once_with(
             provider_id=provider_id,
             start=start,
             end=end,
@@ -117,7 +125,7 @@ class TestListMyConfirmedScheduleUseCase:
         with pytest.raises(ForbiddenError):
             use_case.execute(input_dto)
 
-        mock_sr_repo.list_confirmed_schedule_for_provider.assert_not_called()
+        mock_sr_repo.list_operational_schedule_for_provider.assert_not_called()
 
     def test_non_provider_user_raises_forbidden(self):
         use_case, mock_sr_repo, mock_user_repo = self._make_use_case()
@@ -131,7 +139,7 @@ class TestListMyConfirmedScheduleUseCase:
         with pytest.raises(ForbiddenError):
             use_case.execute(input_dto)
 
-        mock_sr_repo.list_confirmed_schedule_for_provider.assert_not_called()
+        mock_sr_repo.list_operational_schedule_for_provider.assert_not_called()
 
     def test_user_not_found_raises_error(self):
         use_case, mock_sr_repo, mock_user_repo = self._make_use_case()
@@ -143,12 +151,14 @@ class TestListMyConfirmedScheduleUseCase:
         with pytest.raises(UserNotFoundError):
             use_case.execute(input_dto)
 
-        mock_sr_repo.list_confirmed_schedule_for_provider.assert_not_called()
+        mock_sr_repo.list_operational_schedule_for_provider.assert_not_called()
 
     def test_invalid_period_start_greater_than_end_raises_validation_error(self):
         use_case, mock_sr_repo, mock_user_repo = self._make_use_case()
         provider_id = uuid4()
-        mock_user_repo.find_user_by_id.return_value = self._make_active_provider(provider_id)
+        mock_user_repo.find_user_by_id.return_value = self._make_active_provider(
+            provider_id
+        )
 
         input_dto = ListMyConfirmedScheduleInputDTO(
             provider_id=provider_id,
@@ -156,18 +166,24 @@ class TestListMyConfirmedScheduleUseCase:
             end=datetime(2026, 4, 1, 0, 0, 0),
         )
 
-        with pytest.raises(ValidationError, match="start deve ser menor ou igual a end"):
+        with pytest.raises(
+            ValidationError, match="start deve ser menor ou igual a end"
+        ):
             use_case.execute(input_dto)
 
-        mock_sr_repo.list_confirmed_schedule_for_provider.assert_not_called()
+        mock_sr_repo.list_operational_schedule_for_provider.assert_not_called()
 
     def test_equal_start_and_end_is_valid(self):
         use_case, mock_sr_repo, mock_user_repo = self._make_use_case()
         provider_id = uuid4()
-        mock_user_repo.find_user_by_id.return_value = self._make_active_provider(provider_id)
-        mock_sr_repo.list_confirmed_schedule_for_provider.return_value = []
+        mock_user_repo.find_user_by_id.return_value = self._make_active_provider(
+            provider_id
+        )
+        mock_sr_repo.list_operational_schedule_for_provider.return_value = []
 
         dt = datetime(2026, 4, 15, 12, 0, 0)
-        input_dto = ListMyConfirmedScheduleInputDTO(provider_id=provider_id, start=dt, end=dt)
+        input_dto = ListMyConfirmedScheduleInputDTO(
+            provider_id=provider_id, start=dt, end=dt
+        )
         output = use_case.execute(input_dto)
         assert output == []

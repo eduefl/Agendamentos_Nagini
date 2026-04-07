@@ -3,10 +3,18 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from domain.service_request.provider_confirmed_schedule_item_read_model import ProviderConfirmedScheduleItemReadModel
-from infrastructure.service.sqlalchemy.provider_service_model import ProviderServiceModel
-from domain.service_request.available_service_request_read_model import AvailableServiceRequestReadModel
-from domain.service_request.service_request_exceptions import ServiceRequestNotFoundError
+from domain.service_request.provider_operational_schedule_item_read_model import (
+    ProviderOperationalScheduleItemReadModel,
+)
+from infrastructure.service.sqlalchemy.provider_service_model import (
+    ProviderServiceModel,
+)
+from domain.service_request.available_service_request_read_model import (
+    AvailableServiceRequestReadModel,
+)
+from domain.service_request.service_request_exceptions import (
+    ServiceRequestNotFoundError,
+)
 from domain.__seedwork.normalize import normalize_service_name
 from domain.service_request.client_service_list_item_read_model import (
     ClientServiceRequestListItem,
@@ -15,7 +23,10 @@ from infrastructure.service.sqlalchemy.service_model import ServiceModel
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
-from domain.service_request.service_request_entity import ServiceRequest, ServiceRequestStatus
+from domain.service_request.service_request_entity import (
+    ServiceRequest,
+    ServiceRequestStatus,
+)
 from domain.service_request.service_request_repository_interface import (
     ServiceRequestRepositoryInterface,
 )
@@ -47,6 +58,15 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             total_price=model.total_price,
             accepted_at=model.accepted_at,
             expires_at=model.expires_at,
+            travel_started_at=model.travel_started_at,
+            route_calculated_at=model.route_calculated_at,
+            estimated_arrival_at=model.estimated_arrival_at,
+            travel_duration_minutes=model.travel_duration_minutes,
+            travel_distance_km=model.travel_distance_km,
+            provider_arrived_at=model.provider_arrived_at,
+            client_confirmed_provider_arrival_at=model.client_confirmed_provider_arrival_at,
+            service_started_at=model.service_started_at,
+            logistics_reference=model.logistics_reference,
         )
 
     def _entity_to_model(
@@ -67,7 +87,16 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             travel_price=entity.travel_price,
             total_price=entity.total_price,
             accepted_at=entity.accepted_at,
-            expires_at=entity.expires_at,            
+            expires_at=entity.expires_at,
+            travel_started_at=entity.travel_started_at,
+            route_calculated_at=entity.route_calculated_at,
+            estimated_arrival_at=entity.estimated_arrival_at,
+            travel_duration_minutes=entity.travel_duration_minutes,
+            travel_distance_km=entity.travel_distance_km,
+            provider_arrived_at=entity.provider_arrived_at,
+            client_confirmed_provider_arrival_at=entity.client_confirmed_provider_arrival_at,
+            service_started_at=entity.service_started_at,
+            logistics_reference=entity.logistics_reference,
         )
 
     def create(
@@ -137,14 +166,22 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
                 service_price=model.service_price,
                 travel_price=model.travel_price,
                 total_price=model.total_price,
+                travel_started_at=model.travel_started_at,
+                estimated_arrival_at=model.estimated_arrival_at,
+                travel_duration_minutes=model.travel_duration_minutes,
+                travel_distance_km=model.travel_distance_km,
+                provider_arrived_at=model.provider_arrived_at,
+                service_started_at=model.service_started_at,
             )
             for model, service in models
         ]
 
     def update(self, service_request: ServiceRequest) -> ServiceRequest:
-        model = self.session.query(ServiceRequestModel).filter(
-            ServiceRequestModel.id == service_request.id
-        ).first()
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request.id)
+            .first()
+        )
 
         if model is None:
             raise ServiceRequestNotFoundError()
@@ -161,13 +198,23 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         model.total_price = service_request.total_price
         model.accepted_at = service_request.accepted_at
         model.expires_at = service_request.expires_at
+        model.travel_started_at = service_request.travel_started_at
+        model.route_calculated_at = service_request.route_calculated_at
+        model.estimated_arrival_at = service_request.estimated_arrival_at
+        model.travel_duration_minutes = service_request.travel_duration_minutes
+        model.travel_distance_km = service_request.travel_distance_km
+        model.provider_arrived_at = service_request.provider_arrived_at
+        model.client_confirmed_provider_arrival_at = (
+            service_request.client_confirmed_provider_arrival_at
+        )
+        model.service_started_at = service_request.service_started_at
+        model.logistics_reference = service_request.logistics_reference
 
         self.session.commit()
         self.session.refresh(model)
 
         return self._model_to_entity(model)
-    
-    
+
     def list_available_for_provider(
         self,
         provider_id: UUID,
@@ -175,14 +222,19 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         now = datetime.utcnow()
         rows = (
             self.session.query(ServiceRequestModel, ProviderServiceModel, ServiceModel)
-            .join(ProviderServiceModel, ProviderServiceModel.service_id == ServiceRequestModel.service_id)
+            .join(
+                ProviderServiceModel,
+                ProviderServiceModel.service_id == ServiceRequestModel.service_id,
+            )
             .join(ServiceModel, ServiceModel.id == ServiceRequestModel.service_id)
             .filter(
                 ProviderServiceModel.provider_id == provider_id,
                 ProviderServiceModel.active == True,
-                ServiceRequestModel.status == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value,
+                ServiceRequestModel.status
+                == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value,
                 ServiceRequestModel.expires_at > now,
-            ).order_by(ServiceRequestModel.created_at)
+            )
+            .order_by(ServiceRequestModel.created_at)
             .all()
         )
         return [
@@ -203,7 +255,6 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             for sr, ps, svc in rows
         ]
 
-
     def confirm_if_available(
         self,
         service_request_id: UUID,
@@ -220,7 +271,8 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             update(ServiceRequestModel)
             .where(
                 ServiceRequestModel.id == service_request_id,
-                ServiceRequestModel.status == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value,
+                ServiceRequestModel.status
+                == ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value,
                 ServiceRequestModel.expires_at > now,
             )
             .values(
@@ -247,19 +299,26 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         )
 
         return self._model_to_entity(model)
-    
-    def list_confirmed_schedule_for_provider(
+
+    def list_operational_schedule_for_provider(
         self,
         provider_id: UUID,
         start: Optional[datetime] = None,
         end: Optional[datetime] = None,
-    ) -> list[ProviderConfirmedScheduleItemReadModel]:
+    ) -> list[ProviderOperationalScheduleItemReadModel]:
+        # Caminho B: agenda operacional completa — inclui CONFIRMED e todos os status pós-confirmação
+        operational_statuses = [
+            ServiceRequestStatus.CONFIRMED.value,
+            ServiceRequestStatus.IN_TRANSIT.value,
+            ServiceRequestStatus.ARRIVED.value,
+            ServiceRequestStatus.IN_PROGRESS.value,
+        ]
         query = (
             self.session.query(ServiceRequestModel, ServiceModel)
             .join(ServiceModel, ServiceModel.id == ServiceRequestModel.service_id)
             .filter(
                 ServiceRequestModel.accepted_provider_id == provider_id,
-                ServiceRequestModel.status == ServiceRequestStatus.CONFIRMED.value,
+                ServiceRequestModel.status.in_(operational_statuses),
             )
         )
 
@@ -275,7 +334,7 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         ).all()
 
         return [
-            ProviderConfirmedScheduleItemReadModel(
+            ProviderOperationalScheduleItemReadModel(
                 service_request_id=sr.id,
                 provider_id=sr.accepted_provider_id,
                 client_id=sr.client_id,
@@ -289,6 +348,11 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
                 travel_price=sr.travel_price,
                 total_price=sr.total_price,
                 accepted_at=sr.accepted_at,
+                travel_started_at=sr.travel_started_at,
+                estimated_arrival_at=sr.estimated_arrival_at,
+                travel_duration_minutes=sr.travel_duration_minutes,
+                provider_arrived_at=sr.provider_arrived_at,
+                service_started_at=sr.service_started_at,
             )
             for sr, svc in rows
-        ]    
+        ]
