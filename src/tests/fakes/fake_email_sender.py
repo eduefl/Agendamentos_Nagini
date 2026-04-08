@@ -1,5 +1,6 @@
 
 from decimal import Decimal
+from datetime import datetime
 from typing import Optional
 
 from domain.notification.email_sender_interface import EmailSenderInterface
@@ -10,6 +11,7 @@ class FakeEmailSender(EmailSenderInterface):
         self.sent_emails = []
         self.client_confirmation_notifications_sent = []
         self.provider_confirmation_notifications_sent = []
+        self.travel_started_notifications_sent = []
 
     def send_activation_email(self, to_email: str, activation_code: str) -> None:
         self.sent_emails.append((to_email, activation_code))
@@ -75,5 +77,21 @@ class FakeEmailSender(EmailSenderInterface):
                 "service_address": service_address,
                 "travel_price": travel_price,
                 "total_price": total_price,
+            }
+        )
+
+    def send_travel_started_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        estimated_arrival_at: datetime,
+        travel_duration_minutes: int,
+    ) -> None:
+        self.travel_started_notifications_sent.append(
+            {
+                "client_email": client_email,
+                "client_name": client_name,
+                "estimated_arrival_at": estimated_arrival_at,
+                "travel_duration_minutes": travel_duration_minutes,
             }
         )

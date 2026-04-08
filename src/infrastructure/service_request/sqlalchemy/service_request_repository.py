@@ -20,7 +20,8 @@ from domain.service_request.client_service_list_item_read_model import (
     ClientServiceRequestListItem,
 )
 from infrastructure.service.sqlalchemy.service_model import ServiceModel
-from sqlalchemy import update
+from sqlalchemy import update, or_
+
 from sqlalchemy.orm import Session
 
 from domain.service_request.service_request_entity import (
@@ -356,3 +357,52 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             )
             for sr, svc in rows
         ]
+
+
+
+    def start_travel_if_confirmed(
+        self,
+        service_request_id: UUID,
+        provider_id: UUID,
+        now: datetime,
+        estimated_arrival_at: datetime,
+        travel_duration_minutes: int,
+        travel_distance_km: Optional[Decimal],
+        logistics_reference: Optional[str],
+    ) -> Optional[ServiceRequest]:
+
+        result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.accepted_provider_id == provider_id,
+                ServiceRequestModel.status == ServiceRequestStatus.CONFIRMED.value,
+                or_(
+                    ServiceRequestModel.expires_at.is_(None),
+                    ServiceRequestModel.expires_at > now,
+                ),
+            )
+            .values(
+                status=ServiceRequestStatus.IN_TRANSIT.value,
+                travel_started_at=now,
+                route_calculated_at=now,
+                estimated_arrival_at=estimated_arrival_at,
+                travel_duration_minutes=travel_duration_minutes,
+                travel_distance_km=travel_distance_km,
+                logistics_reference=logistics_reference,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+
+        if result.rowcount == 0:
+            return None
+
+        self.session.commit()
+
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+
+        return self._model_to_entity(model)

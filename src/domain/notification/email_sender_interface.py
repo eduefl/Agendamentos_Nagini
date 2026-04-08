@@ -45,3 +45,13 @@ class EmailSenderInterface(ABC):
         total_price: Decimal,
     ) -> None:
         raise NotImplementedError
+    
+    @abstractmethod
+    def send_travel_started_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        estimated_arrival_at: datetime,
+        travel_duration_minutes: int,
+    ) -> None:
+        raise NotImplementedError    

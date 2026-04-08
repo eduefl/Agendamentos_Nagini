@@ -157,3 +157,41 @@ Valor total: R$ {total_price:.2f}
             raise EmailDeliveryError(
                 "Falha ao enviar email de confirmação para o prestador"
             ) from exc
+        
+
+
+    def send_travel_started_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        estimated_arrival_at: datetime,
+        travel_duration_minutes: int,
+    ) -> None:
+        try:
+            remetente = os.environ["EMAIL_SENDER_ADDRESS"]
+            senha = os.environ["EMAIL_SENDER_PASSWORD"]
+
+            hora_chegada = estimated_arrival_at.strftime("%d/%m/%Y %H:%M")
+
+            assunto = "Seu prestador está a caminho!"
+            mensagem = f"""
+Olá, {client_name}!
+Seu prestador iniciou o deslocamento até você.
+Previsão de chegada: {hora_chegada}
+Duração estimada do trajeto: {travel_duration_minutes} minutos
+Fique à vontade para acompanhar pelo aplicativo.
+""".strip()
+
+            msg = EmailMessage()
+            msg["From"] = remetente
+            msg["To"] = client_email
+            msg["Subject"] = assunto
+            msg.set_content(mensagem)
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as email:
+                email.login(remetente, senha)
+                email.send_message(msg)
+        except (smtplib.SMTPException, OSError, TimeoutError, KeyError) as exc:
+            raise EmailDeliveryError(
+                "Falha ao enviar email de início de deslocamento para o cliente"
+            ) from exc

@@ -3,6 +3,7 @@ from typing import Optional
 
 from domain.service_request.service_request_entity import ServiceRequestStatus
 from domain.service_request.service_request_exceptions import (
+    ServiceRequestAddressEmptyError,
     ServiceRequestNotFoundError,
     ServiceRequestUnavailableError,
     ProviderDoesNotServeThisRequestError,
@@ -46,25 +47,35 @@ class ConfirmServiceRequestUseCase:
 
         # Etapa 2 — validar disponibilidade lógica
         now = datetime.utcnow()
-        is_wrong_status = service_request.status != ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
-        is_expired = service_request.expires_at is not None and service_request.expires_at <= now
+        is_wrong_status = (
+            service_request.status
+            != ServiceRequestStatus.AWAITING_PROVIDER_ACCEPTANCE.value
+        )
+        is_expired = (
+            service_request.expires_at is not None and service_request.expires_at <= now
+        )
 
         if is_wrong_status or is_expired:
             raise ServiceRequestUnavailableError()
 
         # Etapa 3 — validar elegibilidade do prestador
-        provider_service = self._provider_service_repository.find_active_by_provider_and_service(
-            provider_id=input_dto.provider_id,
-            service_id=service_request.service_id,
+        provider_service = (
+            self._provider_service_repository.find_active_by_provider_and_service(
+                provider_id=input_dto.provider_id,
+                service_id=service_request.service_id,
+            )
         )
         if provider_service is None:
             raise ProviderDoesNotServeThisRequestError()
+
+        if not service_request.address:
+            raise ServiceRequestAddressEmptyError()
 
         # Etapa 4 — capturar dados para precificação
         service_price = provider_service.price
         travel_price = self._travel_price_gateway.calculate_price(
             departure_address=input_dto.departure_address,
-            destination_address=service_request.address or "",
+            destination_address=service_request.address,
         )
         total_price = service_price + travel_price
 

@@ -74,3 +74,17 @@ class ServiceRequestRepositoryInterface(ABC):
         end: Optional[datetime] = None,
     ) -> list[ProviderOperationalScheduleItemReadModel]:
         raise NotImplementedError
+
+
+    @abstractmethod
+    def start_travel_if_confirmed(
+        self,
+        service_request_id: UUID,
+        provider_id: UUID,
+        now: datetime,
+        estimated_arrival_at: datetime,
+        travel_duration_minutes: int,
+        travel_distance_km: Optional[Decimal],
+        logistics_reference: Optional[str],
+    ) -> Optional[ServiceRequest]:
+        raise NotImplementedError
