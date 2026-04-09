@@ -55,3 +55,12 @@ class EmailSenderInterface(ABC):
         travel_duration_minutes: int,
     ) -> None:
         raise NotImplementedError    
+
+    @abstractmethod
+    def send_provider_arrived_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        provider_arrived_at: datetime,
+    ) -> None:
+        raise NotImplementedError        

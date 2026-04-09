@@ -406,3 +406,37 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         )
 
         return self._model_to_entity(model)
+
+    def mark_arrived_if_in_transit(
+        self,
+        service_request_id: UUID,
+        provider_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+
+        result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.accepted_provider_id == provider_id,
+                ServiceRequestModel.status == ServiceRequestStatus.IN_TRANSIT.value,
+            )
+            .values(
+                status=ServiceRequestStatus.ARRIVED.value,
+                provider_arrived_at=now,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+
+        if result.rowcount == 0:
+            return None
+
+        self.session.commit()
+
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+
+        return self._model_to_entity(model)    

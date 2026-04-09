@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from infrastructure.api.factories.make_report_provider_arrival_usecase import make_report_provider_arrival_usecase
+from usecases.service_request.report_provider_arrival.report_provider_arrival_dto import ReportProviderArrivalInputDTO, ReportProviderArrivalOutputDTO
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
@@ -73,3 +75,33 @@ def start_travel(
         return output
     except Exception as e:        
         raise_http_from_error(e)
+
+
+
+
+
+
+@router.patch(
+    "/{service_request_id}/arrive",
+    response_model=ReportProviderArrivalOutputDTO,
+    status_code=status.HTTP_200_OK,
+)
+def report_provider_arrival(
+    service_request_id: UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_prestador),
+):
+    try:
+        use_case = make_report_provider_arrival_usecase(session)
+
+
+        input_dto = ReportProviderArrivalInputDTO(
+            authenticated_user_id=current_user.id,
+            service_request_id=service_request_id,
+        )
+
+
+        output = use_case.execute(input_dto)
+        return output
+    except Exception as e:
+        raise_http_from_error(e)        

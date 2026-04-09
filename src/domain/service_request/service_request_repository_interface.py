@@ -88,3 +88,13 @@ class ServiceRequestRepositoryInterface(ABC):
         logistics_reference: Optional[str],
     ) -> Optional[ServiceRequest]:
         raise NotImplementedError
+
+
+    @abstractmethod
+    def mark_arrived_if_in_transit(
+        self,
+        service_request_id: UUID,
+        provider_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+        raise NotImplementedError        

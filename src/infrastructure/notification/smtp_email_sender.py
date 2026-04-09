@@ -195,3 +195,43 @@ Fique à vontade para acompanhar pelo aplicativo.
             raise EmailDeliveryError(
                 "Falha ao enviar email de início de deslocamento para o cliente"
             ) from exc
+        
+
+
+    def send_provider_arrived_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        provider_arrived_at: datetime,
+    ) -> None:
+        try:
+            remetente = os.environ["EMAIL_SENDER_ADDRESS"]
+            senha = os.environ["EMAIL_SENDER_PASSWORD"]
+
+
+            hora_chegada = provider_arrived_at.strftime("%d/%m/%Y %H:%M")
+
+
+            assunto = "Seu prestador chegou ao local"
+            mensagem = f"""
+Olá, {client_name}!
+Seu prestador chegou ao local do serviço.
+Horário de chegada: {hora_chegada}
+Fique à vontade para acompanhar pelo aplicativo.
+""".strip()
+
+
+            msg = EmailMessage()
+            msg["From"] = remetente
+            msg["To"] = client_email
+            msg["Subject"] = assunto
+            msg.set_content(mensagem)
+
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as email:
+                email.login(remetente, senha)
+                email.send_message(msg)
+        except (smtplib.SMTPException, OSError, TimeoutError, KeyError) as exc:
+            raise EmailDeliveryError(
+                "Falha ao enviar email de chegada do prestador para o cliente"
+            ) from exc

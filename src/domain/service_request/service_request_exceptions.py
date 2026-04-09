@@ -51,3 +51,21 @@ class ServiceRequestDepartureAddressEmptyError(ConflictError):
 class ServiceRequestExpiredError(ConflictError):
     def __init__(self):
         super().__init__("Solicitação esta expirada")
+
+
+
+class ProviderNotAllowedToReportArrivalError(ForbiddenError):
+    def __init__(self):
+        super().__init__("Prestador não é o responsável por esta solicitação")
+
+
+class ServiceRequestNotInTransitError(ConflictError):
+    def __init__(self):
+        super().__init__(
+            "Solicitação não está em status IN_TRANSIT ou não pode registrar chegada"
+        )
+
+
+class ServiceRequestArrivalAlreadyReportedError(ConflictError):
+    def __init__(self):
+        super().__init__("Chegada já foi registrada para esta solicitação")

@@ -2,10 +2,12 @@ from domain.service_request.service_request_exceptions import (
     InvalidServiceRequestDateError,
     ProviderDoesNotServeThisRequestError,
     ServiceRequestAddressEmptyError,
+    ServiceRequestArrivalAlreadyReportedError,
     ServiceRequestDepartureAddressEmptyError,
     ServiceRequestExpiredError,
     ServiceRequestNotConfirmedError,
     ServiceRequestNotFoundError,
+    ServiceRequestNotInTransitError,
     ServiceRequestUnavailableError,
 )
 from domain.__seedwork.exceptions import ForbiddenError, ValidationError
@@ -65,6 +67,8 @@ def raise_http_from_error(e: Exception) -> None:
             ServiceRequestAddressEmptyError,
             ServiceRequestDepartureAddressEmptyError,
             ServiceRequestExpiredError,
+            ServiceRequestNotInTransitError,
+            ServiceRequestArrivalAlreadyReportedError,            
         ),
     ):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))

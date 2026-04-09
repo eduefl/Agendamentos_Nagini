@@ -13,3 +13,12 @@ class ServiceRequestNotificationGatewayInterface(ABC):
         travel_duration_minutes: int,
     ) -> None:
         raise NotImplementedError
+    
+    @abstractmethod
+    def notify_client_provider_arrived(
+        self,
+        client_id: UUID,
+        service_request_id: UUID,
+        provider_arrived_at: datetime,
+    ) -> None:
+        raise NotImplementedError    

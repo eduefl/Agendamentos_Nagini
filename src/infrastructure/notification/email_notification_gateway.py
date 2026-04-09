@@ -41,3 +41,19 @@ class EmailServiceRequestNotificationGateway(ServiceRequestNotificationGatewayIn
             estimated_arrival_at=estimated_arrival_at,
             travel_duration_minutes=travel_duration_minutes,
         )
+
+    def notify_client_provider_arrived(
+        self,
+        client_id: UUID,
+        service_request_id: UUID,
+        provider_arrived_at: datetime,
+    ) -> None:
+        client = self._user_repository.find_user_by_id(client_id)
+        if client is None:
+            raise EmailDeliveryError(f"Cliente com ID {client_id} não encontrado")
+
+        self._email_sender.send_provider_arrived_to_client(
+            client_email=client.email,
+            client_name=client.name,
+            provider_arrived_at=provider_arrived_at,
+        )
