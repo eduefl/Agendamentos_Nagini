@@ -440,3 +440,33 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         )
 
         return self._model_to_entity(model)    
+    
+    def confirm_provider_arrival_and_start_service_if_arrived(
+        self,
+        service_request_id: UUID,
+        client_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+        result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.client_id == client_id,
+                ServiceRequestModel.status == ServiceRequestStatus.ARRIVED.value,
+            )
+            .values(
+                status=ServiceRequestStatus.IN_PROGRESS.value,
+                client_confirmed_provider_arrival_at=now,
+                service_started_at=now,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+        if result.rowcount == 0:
+            return None
+        self.session.commit()
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+        return self._model_to_entity(model)    

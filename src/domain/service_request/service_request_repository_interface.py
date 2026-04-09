@@ -98,3 +98,12 @@ class ServiceRequestRepositoryInterface(ABC):
         now: datetime,
     ) -> Optional[ServiceRequest]:
         raise NotImplementedError        
+    
+    @abstractmethod
+    def confirm_provider_arrival_and_start_service_if_arrived(
+        self,
+        service_request_id: UUID,
+        client_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+        raise NotImplementedError    
