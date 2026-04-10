@@ -60,6 +60,19 @@ class ServiceRequestModel(Base):
     # Fase 1 — rastreabilidade da ACL Logística
     logistics_reference = Column(String, nullable=True)
 
+    # Fase 1 pagamento — campos financeiros pós-serviço
+    service_finished_at = Column(DateTime, nullable=True)
+    payment_requested_at = Column(DateTime, nullable=True)
+    payment_processing_started_at = Column(DateTime, nullable=True)
+    payment_approved_at = Column(DateTime, nullable=True)
+    payment_refused_at = Column(DateTime, nullable=True)
+    service_concluded_at = Column(DateTime, nullable=True)
+    payment_amount = Column(Numeric(10, 2), nullable=True)
+    payment_last_status = Column(String, nullable=True)
+    payment_provider = Column(String, nullable=True)
+    payment_reference = Column(String, nullable=True)
+    payment_attempt_count = Column(Integer, nullable=True)
+
     client = relationship(
         "UserModel",
         foreign_keys=[client_id],

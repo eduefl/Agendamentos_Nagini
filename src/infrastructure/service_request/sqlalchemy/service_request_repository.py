@@ -28,6 +28,7 @@ from domain.service_request.service_request_entity import (
     ServiceRequest,
     ServiceRequestStatus,
 )
+from domain.payment.payment_status_snapshot import PaymentStatusSnapshot
 from domain.service_request.service_request_repository_interface import (
     ServiceRequestRepositoryInterface,
 )
@@ -68,6 +69,17 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             client_confirmed_provider_arrival_at=model.client_confirmed_provider_arrival_at,
             service_started_at=model.service_started_at,
             logistics_reference=model.logistics_reference,
+            service_finished_at=model.service_finished_at,
+            payment_requested_at=model.payment_requested_at,
+            payment_processing_started_at=model.payment_processing_started_at,
+            payment_approved_at=model.payment_approved_at,
+            payment_refused_at=model.payment_refused_at,
+            service_concluded_at=model.service_concluded_at,
+            payment_amount=model.payment_amount,
+            payment_last_status=model.payment_last_status,
+            payment_provider=model.payment_provider,
+            payment_reference=model.payment_reference,
+            payment_attempt_count=model.payment_attempt_count,
         )
 
     def _entity_to_model(
@@ -98,6 +110,17 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             client_confirmed_provider_arrival_at=entity.client_confirmed_provider_arrival_at,
             service_started_at=entity.service_started_at,
             logistics_reference=entity.logistics_reference,
+            service_finished_at=entity.service_finished_at,
+            payment_requested_at=entity.payment_requested_at,
+            payment_processing_started_at=entity.payment_processing_started_at,
+            payment_approved_at=entity.payment_approved_at,
+            payment_refused_at=entity.payment_refused_at,
+            service_concluded_at=entity.service_concluded_at,
+            payment_amount=entity.payment_amount,
+            payment_last_status=entity.payment_last_status,
+            payment_provider=entity.payment_provider,
+            payment_reference=entity.payment_reference,
+            payment_attempt_count=entity.payment_attempt_count,
         )
 
     def create(
@@ -173,6 +196,14 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
                 travel_distance_km=model.travel_distance_km,
                 provider_arrived_at=model.provider_arrived_at,
                 service_started_at=model.service_started_at,
+                service_finished_at=model.service_finished_at,
+                payment_requested_at=model.payment_requested_at,
+                payment_processing_started_at=model.payment_processing_started_at,
+                payment_approved_at=model.payment_approved_at,
+                payment_refused_at=model.payment_refused_at,
+                service_concluded_at=model.service_concluded_at,
+                payment_last_status=model.payment_last_status,
+                payment_amount=model.payment_amount,
             )
             for model, service in models
         ]
@@ -210,6 +241,17 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         )
         model.service_started_at = service_request.service_started_at
         model.logistics_reference = service_request.logistics_reference
+        model.service_finished_at = service_request.service_finished_at
+        model.payment_requested_at = service_request.payment_requested_at
+        model.payment_processing_started_at = service_request.payment_processing_started_at
+        model.payment_approved_at = service_request.payment_approved_at
+        model.payment_refused_at = service_request.payment_refused_at
+        model.service_concluded_at = service_request.service_concluded_at
+        model.payment_amount = service_request.payment_amount
+        model.payment_last_status = service_request.payment_last_status
+        model.payment_provider = service_request.payment_provider
+        model.payment_reference = service_request.payment_reference
+        model.payment_attempt_count = service_request.payment_attempt_count
 
         self.session.commit()
         self.session.refresh(model)
@@ -307,12 +349,15 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         start: Optional[datetime] = None,
         end: Optional[datetime] = None,
     ) -> list[ProviderOperationalScheduleItemReadModel]:
-        # Caminho B: agenda operacional completa — inclui CONFIRMED e todos os status pós-confirmação
+        # Agenda operacional completa — inclui CONFIRMED e todos os status pós-confirmação, incluindo financeiros
         operational_statuses = [
             ServiceRequestStatus.CONFIRMED.value,
             ServiceRequestStatus.IN_TRANSIT.value,
             ServiceRequestStatus.ARRIVED.value,
             ServiceRequestStatus.IN_PROGRESS.value,
+            ServiceRequestStatus.AWAITING_PAYMENT.value,
+            ServiceRequestStatus.PAYMENT_PROCESSING.value,
+            ServiceRequestStatus.COMPLETED.value,
         ]
         query = (
             self.session.query(ServiceRequestModel, ServiceModel)
@@ -354,6 +399,10 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
                 travel_duration_minutes=sr.travel_duration_minutes,
                 provider_arrived_at=sr.provider_arrived_at,
                 service_started_at=sr.service_started_at,
+                service_finished_at=sr.service_finished_at,
+                payment_requested_at=sr.payment_requested_at,
+                payment_last_status=sr.payment_last_status,
+                service_concluded_at=sr.service_concluded_at,
             )
             for sr, svc in rows
         ]
@@ -458,6 +507,125 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
                 status=ServiceRequestStatus.IN_PROGRESS.value,
                 client_confirmed_provider_arrival_at=now,
                 service_started_at=now,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+        if result.rowcount == 0:
+            return None
+        self.session.commit()
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+        return self._model_to_entity(model)
+
+
+
+
+    def finish_service_if_in_progress(
+        self,
+        service_request_id: UUID,
+        provider_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+        result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.accepted_provider_id == provider_id,
+                ServiceRequestModel.status == ServiceRequestStatus.IN_PROGRESS.value,
+            )
+            .values(
+                status=ServiceRequestStatus.AWAITING_PAYMENT.value,
+                service_finished_at=now,
+                payment_requested_at=now,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+        if result.rowcount == 0:
+            return None
+        self.session.commit()
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+        return self._model_to_entity(model)
+
+    def start_payment_processing_if_awaiting_payment(
+        self,
+        service_request_id: UUID,
+        now: datetime,
+        payment_reference: Optional[str] = None,
+    ) -> Optional[ServiceRequest]:
+        result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.status == ServiceRequestStatus.AWAITING_PAYMENT.value,
+            )
+            .values(
+                status=ServiceRequestStatus.PAYMENT_PROCESSING.value,
+                payment_processing_started_at=now,
+                payment_reference=payment_reference,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+        if result.rowcount == 0:
+            return None
+        self.session.commit()
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+        return self._model_to_entity(model)
+
+    def mark_payment_approved_if_processing(
+        self,
+        service_request_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+        result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.status == ServiceRequestStatus.PAYMENT_PROCESSING.value,
+            )
+            .values(
+                status=ServiceRequestStatus.COMPLETED.value,
+                payment_approved_at=now,
+                service_concluded_at=now,
+                payment_last_status=PaymentStatusSnapshot.APPROVED.value,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+        if result.rowcount == 0:
+            return None
+        self.session.commit()
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+        return self._model_to_entity(model)
+
+    def mark_payment_refused_if_processing(
+        self,
+        service_request_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+        result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.status == ServiceRequestStatus.PAYMENT_PROCESSING.value,
+            )
+            .values(
+                status=ServiceRequestStatus.AWAITING_PAYMENT.value,
+                payment_refused_at=now,
+                payment_last_status=PaymentStatusSnapshot.REFUSED.value,
             )
             .execution_options(synchronize_session="fetch")
         )

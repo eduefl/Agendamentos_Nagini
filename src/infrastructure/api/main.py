@@ -24,6 +24,7 @@ from infrastructure.service.sqlalchemy.provider_service_model import (
 from infrastructure.service_request.sqlalchemy.service_request_model import (
     ServiceRequestModel,
 )
+from infrastructure.payment.sqlalchemy.payment_attempt_model import PaymentAttemptModel
 
 
 @asynccontextmanager

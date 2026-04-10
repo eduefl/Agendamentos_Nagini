@@ -36,6 +36,14 @@ def _make_schedule_item(**overrides):
         "travel_price": Decimal("25.00"),
         "total_price": Decimal("125.00"),
         "accepted_at": datetime(2026, 4, 5, 11, 30, 0),
+        "travel_started_at": None,
+        "estimated_arrival_at": None,
+        "travel_duration_minutes": None,
+        "provider_arrived_at": None,
+        "service_started_at": None,
+        "service_finished_at": None,
+        "payment_requested_at": None,
+        "payment_last_status": None,        
     }
     data.update(overrides)
     return MagicMock(**data)

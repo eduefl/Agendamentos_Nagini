@@ -50,6 +50,14 @@ class TestListMyServiceRequestsUseCase:
                 travel_distance_km=None,
                 provider_arrived_at=None,
                 service_started_at=None,                
+                service_finished_at=None,
+                payment_requested_at=None,
+                payment_processing_started_at=None,
+                payment_approved_at=None,
+                payment_refused_at=None,
+                service_concluded_at=None,
+                payment_last_status=None,
+                payment_amount=None,                
             )
         ]
 

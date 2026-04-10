@@ -30,5 +30,13 @@ class ListMyServiceRequestsOutputItemDTO(BaseModel):
     travel_distance_km: Optional[Decimal] = None
     provider_arrived_at: Optional[datetime] = None
     service_started_at: Optional[datetime] = None
-    
+    # Fase 1 pagamento — campos financeiros pós-serviço
+    service_finished_at: Optional[datetime] = None
+    payment_requested_at: Optional[datetime] = None
+    payment_processing_started_at: Optional[datetime] = None
+    payment_approved_at: Optional[datetime] = None
+    payment_refused_at: Optional[datetime] = None
+    service_concluded_at: Optional[datetime] = None
+    payment_last_status: Optional[str] = None
+    payment_amount: Optional[Decimal] = None    
 

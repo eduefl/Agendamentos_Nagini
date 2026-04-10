@@ -26,3 +26,8 @@ class ProviderOperationalScheduleItemReadModel:
     travel_duration_minutes: Optional[int] = None
     provider_arrived_at: Optional[datetime] = None
     service_started_at: Optional[datetime] = None
+    # Fase 1 pagamento — campos financeiros pós-serviço
+    service_finished_at: Optional[datetime] = None
+    payment_requested_at: Optional[datetime] = None
+    payment_last_status: Optional[str] = None
+    service_concluded_at: Optional[datetime] = None

@@ -106,4 +106,38 @@ class ServiceRequestRepositoryInterface(ABC):
         client_id: UUID,
         now: datetime,
     ) -> Optional[ServiceRequest]:
-        raise NotImplementedError    
+        raise NotImplementedError
+
+    @abstractmethod
+    def finish_service_if_in_progress(
+        self,
+        service_request_id: UUID,
+        provider_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def start_payment_processing_if_awaiting_payment(
+        self,
+        service_request_id: UUID,
+        now: datetime,
+        payment_reference: Optional[str] = None,
+    ) -> Optional[ServiceRequest]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def mark_payment_approved_if_processing(
+        self,
+        service_request_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def mark_payment_refused_if_processing(
+        self,
+        service_request_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+        raise NotImplementedError            

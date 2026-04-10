@@ -179,6 +179,16 @@ class TestListMyServiceRequestsOperationalFields:
         assert item["travel_distance_km"] is None
         assert item["provider_arrived_at"] is None
         assert item["service_started_at"] is None
+        assert item["service_finished_at"] is None
+        assert item["payment_requested_at"] is None
+        assert item["payment_processing_started_at"] is None
+        assert item["payment_approved_at"] is None
+        assert item["payment_refused_at"] is None
+        assert item["service_concluded_at"] is None
+        assert item["payment_last_status"] is None
+        assert item["payment_amount"] is None
+
+
 
     def test_in_transit_fields_are_serialized(
         self, client, tst_db_session, make_user, make_service, seed_roles
@@ -271,6 +281,11 @@ class TestProviderScheduleOperationalFields:
         assert item["travel_duration_minutes"] is None
         assert item["provider_arrived_at"] is None
         assert item["service_started_at"] is None
+        assert item["service_finished_at"] is None
+        assert item["payment_requested_at"] is None
+        assert item["payment_last_status"] is None
+        assert item["service_concluded_at"] is None
+        
 
     def test_provider_schedule_lists_in_transit_status(
         self, client, tst_db_session, make_user, make_service, seed_roles

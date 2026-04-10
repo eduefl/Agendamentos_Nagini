@@ -62,6 +62,10 @@ class ListMyConfirmedScheduleUseCase:
                 travel_duration_minutes=item.travel_duration_minutes,
                 provider_arrived_at=item.provider_arrived_at,
                 service_started_at=item.service_started_at,
+                service_finished_at=item.service_finished_at,
+                payment_requested_at=item.payment_requested_at,
+                payment_last_status=item.payment_last_status,
+                service_concluded_at=item.service_concluded_at,                
             )
             for item in items
         ]

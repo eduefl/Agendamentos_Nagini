@@ -370,3 +370,108 @@ class TestServiceRequest:
         )
         # This should not raise an error
         assert service_request._validate_non_confirmed_cancelled_state() is True
+    def test_service_request_validation_should_pass_with_valid_data(self):
+        service_request = ServiceRequest(
+            id=uuid4(),
+            client_id=uuid4(),
+            service_id=uuid4(),
+            desired_datetime=datetime.utcnow() + timedelta(days=1),
+            address="Rua das Flores, 123",
+            created_at=datetime.utcnow(),
+            accepted_provider_id=uuid4(),
+            departure_address="Rua das Flores, 456",
+            service_price=Decimal("100.00"),
+            travel_price=Decimal("10.00"),
+            total_price=Decimal("110.00"),
+            accepted_at=datetime.utcnow(),
+            expires_at=datetime.utcnow() + timedelta(days=2),
+            travel_started_at=datetime.utcnow(),
+            route_calculated_at=datetime.utcnow(),
+            estimated_arrival_at=datetime.utcnow() + timedelta(hours=1),
+            travel_duration_minutes=30,
+            travel_distance_km=Decimal("5.0"),
+            provider_arrived_at=datetime.utcnow(),
+            client_confirmed_provider_arrival_at=datetime.utcnow(),
+            service_started_at=datetime.utcnow(),
+            logistics_reference="LOG123",
+            service_finished_at=datetime.utcnow(),
+            payment_requested_at=datetime.utcnow(),
+            payment_processing_started_at=datetime.utcnow(),
+            payment_approved_at=datetime.utcnow(),
+            payment_refused_at=None,
+            service_concluded_at=datetime.utcnow(),
+            payment_amount=Decimal("110.00"),
+            payment_last_status="APPROVED",
+            payment_provider="Provider A",
+            payment_reference="REF123",
+            payment_attempt_count=1,
+            status=ServiceRequestStatus.COMPLETED,
+        )
+
+        assert service_request.validate() is True
+
+    def test_service_request_validation_should_raise_error_for_invalid_id(self):
+        with pytest.raises(ValueError, match="ID must be a UUID."):
+            ServiceRequest(
+                id="invalid-id",
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+            ).validate()
+
+    def test_service_request_validation_should_raise_error_for_invalid_client_id(self):
+        with pytest.raises(ValueError, match="Client ID must be a UUID."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id="invalid-client-id",
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+            ).validate()
+
+    def test_service_request_validation_should_raise_error_for_invalid_service_id(self):
+        with pytest.raises(ValueError, match="Service ID must be a UUID."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id="invalid-service-id",
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+            ).validate()
+
+    def test_service_request_validation_should_raise_error_for_invalid_desired_datetime(self):
+        with pytest.raises(ValueError, match="Desired datetime must be a datetime."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime="invalid-datetime",
+            ).validate()
+
+    def test_service_request_validation_should_raise_error_for_invalid_address(self):
+        with pytest.raises(ValueError, match="Address must be a string or None."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                address=123,
+            ).validate()
+
+    def test_service_request_validation_should_raise_error_for_invalid_created_at(self):
+        with pytest.raises(ValueError, match="Created at must be a datetime."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                created_at="invalid-datetime",
+            ).validate()
+
+    def test_service_request_validation_should_raise_error_for_invalid_payment_amount(self):
+        with pytest.raises(ValueError, match="payment_amount must be greater than zero."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                payment_amount=Decimal("-10.00"),
+            ).validate()

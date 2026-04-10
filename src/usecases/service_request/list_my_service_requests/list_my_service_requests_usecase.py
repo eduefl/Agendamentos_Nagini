@@ -57,6 +57,14 @@ class ListMyServiceRequestsUseCase:
                 travel_distance_km=item.travel_distance_km,
                 provider_arrived_at=item.provider_arrived_at,
                 service_started_at=item.service_started_at,
+                service_finished_at=item.service_finished_at,
+                payment_requested_at=item.payment_requested_at,
+                payment_processing_started_at=item.payment_processing_started_at,
+                payment_approved_at=item.payment_approved_at,
+                payment_refused_at=item.payment_refused_at,
+                service_concluded_at=item.service_concluded_at,
+                payment_last_status=item.payment_last_status,
+                payment_amount=item.payment_amount,                
             )
             for item in items
         ]
