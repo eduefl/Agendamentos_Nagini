@@ -84,3 +84,24 @@ class ServiceRequestProviderArrivalNotRegisteredError(ConflictError):
 class ServiceRequestArrivalAlreadyConfirmedError(ConflictError):
     def __init__(self):
         super().__init__("Chegada do prestador já foi confirmada e o serviço está em andamento")
+
+class ProviderNotAllowedToFinishServiceError(ForbiddenError):
+    def __init__(self):
+        super().__init__("Prestador não é o responsável por esta solicitação")
+
+
+class ServiceRequestNotInProgressError(ConflictError):
+    def __init__(self):
+        super().__init__(
+            "Solicitação não está em status IN_PROGRESS ou não pode ser finalizada"
+        )
+
+
+class ServiceRequestAlreadyFinishedError(ConflictError):
+    def __init__(self):
+        super().__init__("Serviço já foi finalizado para esta solicitação")
+
+
+class ServiceRequestInvalidFinalAmountError(ConflictError):
+    def __init__(self):
+        super().__init__("Valor final do atendimento não está definido ou é inválido")   

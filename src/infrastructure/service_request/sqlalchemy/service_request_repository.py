@@ -35,6 +35,8 @@ from domain.service_request.service_request_repository_interface import (
 from infrastructure.service_request.sqlalchemy.service_request_model import (
     ServiceRequestModel,
 )
+from infrastructure.payment.sqlalchemy.payment_attempt_model import PaymentAttemptModel
+from domain.payment.payment_attempt_status import PaymentAttemptStatus
 
 
 class ServiceRequestRepository(ServiceRequestRepositoryInterface):
@@ -632,6 +634,59 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
         if result.rowcount == 0:
             return None
         self.session.commit()
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+        return self._model_to_entity(model)
+
+    def finish_service_and_open_payment_if_in_progress(
+        self,
+        service_request_id: UUID,
+        provider_id: UUID,
+        now: datetime,
+        payment_amount: Decimal,
+        payment_attempt_id: UUID,
+    ) -> Optional[ServiceRequest]:
+
+        result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.accepted_provider_id == provider_id,
+                ServiceRequestModel.status == ServiceRequestStatus.IN_PROGRESS.value,
+                ServiceRequestModel.service_finished_at.is_(None),
+            )
+            .values(
+                status=ServiceRequestStatus.AWAITING_PAYMENT.value,
+                service_finished_at=now,
+                payment_requested_at=now,
+                payment_amount=payment_amount,
+                payment_last_status=PaymentStatusSnapshot.REQUESTED.value,
+                payment_attempt_count=1,
+                payment_reference=None,
+                payment_provider=None,
+                service_concluded_at=None,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+
+        if result.rowcount == 0:
+            return None
+
+        attempt_model = PaymentAttemptModel(
+            id=payment_attempt_id,
+            service_request_id=service_request_id,
+            attempt_number=1,
+            amount=payment_amount,
+            status=PaymentAttemptStatus.REQUESTED.value,
+            requested_at=now,
+        )
+        self.session.add(attempt_model)
+
+        self.session.commit()
+
         model = (
             self.session.query(ServiceRequestModel)
             .filter(ServiceRequestModel.id == service_request_id)

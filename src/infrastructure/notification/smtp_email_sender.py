@@ -235,3 +235,43 @@ Fique à vontade para acompanhar pelo aplicativo.
             raise EmailDeliveryError(
                 "Falha ao enviar email de chegada do prestador para o cliente"
             ) from exc
+
+    def send_payment_requested_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        payment_amount: Decimal,
+        payment_requested_at: datetime,
+    ) -> None:
+        try:
+            remetente = os.environ["EMAIL_SENDER_ADDRESS"]
+            senha = os.environ["EMAIL_SENDER_PASSWORD"]
+
+
+            hora_cobranca = payment_requested_at.strftime("%d/%m/%Y %H:%M")
+
+
+            assunto = "Serviço disponível para pagamento"
+            mensagem = f"""
+Olá, {client_name}!
+O serviço foi concluído pelo prestador e o pagamento está disponível.
+Valor a pagar: R$ {payment_amount:.2f}
+Data da solicitação: {hora_cobranca}
+Acesse a plataforma para efetuar o pagamento.
+""".strip()
+
+
+            msg = EmailMessage()
+            msg["From"] = remetente
+            msg["To"] = client_email
+            msg["Subject"] = assunto
+            msg.set_content(mensagem)
+
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as email:
+                email.login(remetente, senha)
+                email.send_message(msg)
+        except (smtplib.SMTPException, OSError, TimeoutError, KeyError) as exc:
+            raise EmailDeliveryError(
+                "Falha ao enviar email de cobrança para o cliente"
+            ) from exc        

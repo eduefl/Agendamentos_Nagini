@@ -141,3 +141,14 @@ class ServiceRequestRepositoryInterface(ABC):
         now: datetime,
     ) -> Optional[ServiceRequest]:
         raise NotImplementedError            
+    
+    @abstractmethod
+    def finish_service_and_open_payment_if_in_progress(
+        self,
+        service_request_id: UUID,
+        provider_id: UUID,
+        now: datetime,
+        payment_amount: Decimal,
+        payment_attempt_id: UUID,
+    ) -> Optional[ServiceRequest]:
+        raise NotImplementedError

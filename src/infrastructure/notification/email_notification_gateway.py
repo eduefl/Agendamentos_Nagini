@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from domain.notification.notification_exceptions import EmailDeliveryError
@@ -56,4 +57,25 @@ class EmailServiceRequestNotificationGateway(ServiceRequestNotificationGatewayIn
             client_email=client.email,
             client_name=client.name,
             provider_arrived_at=provider_arrived_at,
+        )
+
+
+
+    def notify_payment_requested(
+        self,
+        client_id: UUID,
+        service_request_id: UUID,
+        payment_amount: Decimal,
+        payment_requested_at: datetime,
+    ) -> None:
+        client = self._user_repository.find_user_by_id(client_id)
+        if client is None:
+            raise EmailDeliveryError(f"Cliente com ID {client_id} não encontrado")
+
+
+        self._email_sender.send_payment_requested_to_client(
+            client_email=client.email,
+            client_name=client.name,
+            payment_amount=payment_amount,
+            payment_requested_at=payment_requested_at,
         )

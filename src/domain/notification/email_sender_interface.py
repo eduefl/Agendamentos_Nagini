@@ -64,3 +64,13 @@ class EmailSenderInterface(ABC):
         provider_arrived_at: datetime,
     ) -> None:
         raise NotImplementedError        
+    
+    @abstractmethod
+    def send_payment_requested_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        payment_amount: Decimal,
+        payment_requested_at: datetime,
+    ) -> None:
+        raise NotImplementedError

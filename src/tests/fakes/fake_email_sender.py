@@ -13,6 +13,7 @@ class FakeEmailSender(EmailSenderInterface):
         self.provider_confirmation_notifications_sent = []
         self.travel_started_notifications_sent = []
         self.provider_arrived_notifications_sent = []
+        self.payment_requested_notifications_sent = []
         
     def send_activation_email(self, to_email: str, activation_code: str) -> None:
         self.sent_emails.append((to_email, activation_code))
@@ -110,3 +111,19 @@ class FakeEmailSender(EmailSenderInterface):
                 "provider_arrived_at": provider_arrived_at,
             }
         )
+
+    def send_payment_requested_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        payment_amount: Decimal,
+        payment_requested_at: datetime,
+    ) -> None:
+        self.payment_requested_notifications_sent.append(
+            {
+                "client_email": client_email,
+                "client_name": client_name,
+                "payment_amount": payment_amount,
+                "payment_requested_at": payment_requested_at,
+            }
+        )   

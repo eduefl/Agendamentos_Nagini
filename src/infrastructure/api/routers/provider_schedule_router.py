@@ -3,7 +3,9 @@ from typing import Optional
 from uuid import UUID
 
 from infrastructure.api.factories.make_report_provider_arrival_usecase import make_report_provider_arrival_usecase
+from infrastructure.api.factories.make_finish_service_and_request_payment_usecase import make_finish_service_and_request_payment_usecase
 from usecases.service_request.report_provider_arrival.report_provider_arrival_dto import ReportProviderArrivalInputDTO, ReportProviderArrivalOutputDTO
+from usecases.service_request.finish_service_and_request_payment.finish_service_and_request_payment_dto import FinishServiceAndRequestPaymentInputDTO, FinishServiceAndRequestPaymentOutputDTO
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
@@ -52,6 +54,7 @@ def list_my_confirmed_schedule(
         return output
     except Exception as e:
         raise_http_from_error(e)
+
 
 @router.patch(
     "/{service_request_id}/start-travel",
@@ -105,3 +108,27 @@ def report_provider_arrival(
         return output
     except Exception as e:
         raise_http_from_error(e)        
+
+@router.patch(
+    "/{service_request_id}/finish-service",
+    response_model=FinishServiceAndRequestPaymentOutputDTO,
+    status_code=status.HTTP_200_OK,
+)
+def finish_service(
+    service_request_id: UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_prestador),
+):
+    try:
+        use_case = make_finish_service_and_request_payment_usecase(session)
+
+        input_dto = FinishServiceAndRequestPaymentInputDTO(
+            authenticated_user_id=current_user.id,
+            service_request_id=service_request_id,
+        )
+
+        output = use_case.execute(input_dto)
+        return output
+    except Exception as e:
+        raise_http_from_error(e)
+

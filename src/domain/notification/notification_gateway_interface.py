@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 
@@ -22,3 +23,14 @@ class ServiceRequestNotificationGatewayInterface(ABC):
         provider_arrived_at: datetime,
     ) -> None:
         raise NotImplementedError    
+    
+
+    @abstractmethod
+    def notify_payment_requested(
+        self,
+        client_id: UUID,
+        service_request_id: UUID,
+        payment_amount: Decimal,
+        payment_requested_at: datetime,
+    ) -> None:
+        raise NotImplementedError        
