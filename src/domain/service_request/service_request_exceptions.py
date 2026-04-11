@@ -104,4 +104,38 @@ class ServiceRequestAlreadyFinishedError(ConflictError):
 
 class ServiceRequestInvalidFinalAmountError(ConflictError):
     def __init__(self):
-        super().__init__("Valor final do atendimento não está definido ou é inválido")   
+        super().__init__("Valor final do atendimento não está definido ou é inválido")
+
+
+class ClientNotAllowedToConfirmPaymentError(ForbiddenError):
+    def __init__(self):
+        super().__init__("Cliente não é o dono desta solicitação de serviço")
+
+
+class ServiceRequestNotAwaitingPaymentError(ConflictError):
+    def __init__(self):
+        super().__init__(
+            "Solicitação não está em status AWAITING_PAYMENT ou não pode confirmar pagamento"
+        )
+
+
+class ServiceRequestPaymentAlreadyProcessingError(ConflictError):
+    def __init__(self):
+        super().__init__("Pagamento já está em processamento para esta solicitação")
+
+
+class ServiceRequestPaymentNotRequestedError(ConflictError):
+    def __init__(self):
+        super().__init__(
+            "Tentativa de pagamento não encontrada ou não está em status REQUESTED"
+        )
+
+
+class ServiceRequestPaymentAmountInvalidError(ConflictError):
+    def __init__(self):
+        super().__init__("Valor de pagamento não está definido ou é inválido para esta solicitação")
+
+
+class ServiceRequestAlreadyCompletedError(ConflictError):
+    def __init__(self):
+        super().__init__("Solicitação de serviço já foi concluída")   

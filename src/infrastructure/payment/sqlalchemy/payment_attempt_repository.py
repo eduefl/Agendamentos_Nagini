@@ -169,3 +169,32 @@ class PaymentAttemptRepository(PaymentAttemptRepositoryInterface):
             .filter(PaymentAttemptModel.service_request_id == service_request_id)
             .count()
         )
+
+    def record_gateway_reference(
+        self,
+        attempt_id: UUID,
+        provider: str,
+        external_reference: str,
+        provider_message: Optional[str] = None,
+    ) -> Optional[PaymentAttempt]:
+        values = {
+            "provider": provider,
+            "external_reference": external_reference,
+        }
+        if provider_message is not None:
+            values["provider_message"] = provider_message
+        result = self.session.execute(
+            update(PaymentAttemptModel)
+            .where(PaymentAttemptModel.id == attempt_id)
+            .values(**values)
+            .execution_options(synchronize_session="fetch")
+        )
+        if result.rowcount == 0:
+            return None
+        self.session.commit()
+        model = (
+            self.session.query(PaymentAttemptModel)
+            .filter(PaymentAttemptModel.id == attempt_id)
+            .first()
+        )
+        return self._model_to_entity(model)

@@ -37,11 +37,33 @@ from infrastructure.service_request.sqlalchemy.service_request_model import (
 )
 from infrastructure.payment.sqlalchemy.payment_attempt_model import PaymentAttemptModel
 from domain.payment.payment_attempt_status import PaymentAttemptStatus
+from domain.payment.payment_attempt_entity import PaymentAttempt
+from domain.service_request.service_request_exceptions import (
+    ServiceRequestPaymentNotRequestedError,
+)
 
 
 class ServiceRequestRepository(ServiceRequestRepositoryInterface):
     def __init__(self, session: Session):
         self.session = session
+
+    def _payment_attempt_model_to_entity(self, model: PaymentAttemptModel) -> PaymentAttempt:
+        return PaymentAttempt(
+            id=model.id,
+            service_request_id=model.service_request_id,
+            attempt_number=model.attempt_number,
+            amount=model.amount,
+            status=model.status,
+            requested_at=model.requested_at,
+            processing_started_at=model.processing_started_at,
+            processed_at=model.processed_at,
+            approved_at=model.approved_at,
+            refused_at=model.refused_at,
+            provider=model.provider,
+            external_reference=model.external_reference,
+            refusal_reason=model.refusal_reason,
+            provider_message=model.provider_message,
+        )
 
     def _model_to_entity(
         self,
@@ -558,6 +580,7 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
     def start_payment_processing_if_awaiting_payment(
         self,
         service_request_id: UUID,
+        client_id: UUID,
         now: datetime,
         payment_reference: Optional[str] = None,
     ) -> Optional[ServiceRequest]:
@@ -565,11 +588,17 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             update(ServiceRequestModel)
             .where(
                 ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.client_id == client_id,
                 ServiceRequestModel.status == ServiceRequestStatus.AWAITING_PAYMENT.value,
+                ServiceRequestModel.service_finished_at.isnot(None),
+                ServiceRequestModel.payment_requested_at.isnot(None),
+                ServiceRequestModel.payment_amount.isnot(None),
+                ServiceRequestModel.payment_amount > 0,
             )
             .values(
                 status=ServiceRequestStatus.PAYMENT_PROCESSING.value,
                 payment_processing_started_at=now,
+                payment_last_status=PaymentStatusSnapshot.PROCESSING.value,
                 payment_reference=payment_reference,
             )
             .execution_options(synchronize_session="fetch")
@@ -582,6 +611,72 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             .filter(ServiceRequestModel.id == service_request_id)
             .first()
         )
+        if model is None:
+            return None
+        return self._model_to_entity(model)
+
+    def start_payment_processing_and_mark_attempt_if_awaiting_payment(
+        self,
+        service_request_id: UUID,
+        client_id: UUID,
+        attempt_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+        """
+        Atualiza atomicamente ServiceRequest (AWAITING_PAYMENT -> PAYMENT_PROCESSING) e
+        a PaymentAttempt correspondente (REQUESTED -> PROCESSING) num único commit.
+
+        Retorna None se a pré-condição do ServiceRequest não for satisfeita.
+        Levanta ServiceRequestPaymentNotRequestedError se a pré-condição da
+        PaymentAttempt não for satisfeita (rollback implícito antes de levantar).
+        """
+        sr_result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.client_id == client_id,
+                ServiceRequestModel.status == ServiceRequestStatus.AWAITING_PAYMENT.value,
+                ServiceRequestModel.service_finished_at.isnot(None),
+                ServiceRequestModel.payment_requested_at.isnot(None),
+                ServiceRequestModel.payment_amount.isnot(None),
+                ServiceRequestModel.payment_amount > 0,
+            )
+            .values(
+                status=ServiceRequestStatus.PAYMENT_PROCESSING.value,
+                payment_processing_started_at=now,
+                payment_last_status=PaymentStatusSnapshot.PROCESSING.value,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+        if sr_result.rowcount == 0:
+            return None
+
+        pa_result = self.session.execute(
+            update(PaymentAttemptModel)
+            .where(
+                PaymentAttemptModel.id == attempt_id,
+                PaymentAttemptModel.service_request_id == service_request_id,
+                PaymentAttemptModel.status == PaymentAttemptStatus.REQUESTED.value,
+            )
+            .values(
+                status=PaymentAttemptStatus.PROCESSING.value,
+                processing_started_at=now,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+        if pa_result.rowcount == 0:
+            self.session.rollback()
+            raise ServiceRequestPaymentNotRequestedError()
+
+        self.session.commit()
+
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+        if model is None:
+            return None
         return self._model_to_entity(model)
 
     def mark_payment_approved_if_processing(

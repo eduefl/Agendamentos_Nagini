@@ -121,9 +121,28 @@ class ServiceRequestRepositoryInterface(ABC):
     def start_payment_processing_if_awaiting_payment(
         self,
         service_request_id: UUID,
+        client_id: UUID,
         now: datetime,
         payment_reference: Optional[str] = None,
     ) -> Optional[ServiceRequest]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def start_payment_processing_and_mark_attempt_if_awaiting_payment(
+        self,
+        service_request_id: UUID,
+        client_id: UUID,
+        attempt_id: UUID,
+        now: datetime,
+    ) -> Optional[ServiceRequest]:
+        """
+        Atualiza atomicamente ServiceRequest (AWAITING_PAYMENT -> PAYMENT_PROCESSING) e
+        a PaymentAttempt correspondente (REQUESTED -> PROCESSING) num único commit.
+
+        Retorna None se a pré-condição do ServiceRequest não for satisfeita.
+        Levanta ServiceRequestPaymentNotRequestedError se a pré-condição da
+        PaymentAttempt não for satisfeita (rollback implícito antes de levantar).
+        """
         raise NotImplementedError
 
     @abstractmethod

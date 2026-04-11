@@ -3,7 +3,9 @@ from typing import Optional
 from uuid import UUID
 
 from infrastructure.api.factories.make_confirm_provider_arrival_and_start_service_usecase import make_confirm_provider_arrival_and_start_service_usecase
+from infrastructure.api.factories.make_confirm_payment_usecase import make_confirm_payment_usecase
 from usecases.service_request.confirm_provider_arrival_and_start_service.confirm_provider_arrival_and_start_service_dto import ConfirmProviderArrivalAndStartServiceInputDTO, ConfirmProviderArrivalAndStartServiceOutputDTO
+from usecases.service_request.confirm_payment.confirm_payment_dto import ConfirmPaymentInputDTO, ConfirmPaymentOutputDTO
 from infrastructure.api.factories.make_list_my_service_requests_usecase import make_list_my_service_requests_usecase
 from usecases.service_request.list_my_service_requests.list_my_service_requests_dto import ListMyServiceRequestsInputDTO, ListMyServiceRequestsOutputItemDTO
 from fastapi import APIRouter, Depends, status
@@ -101,3 +103,24 @@ def confirm_provider_arrival(
     except Exception as e:
         raise_http_from_error(e)
 
+
+@router.patch(
+    "/{service_request_id}/confirm-payment",
+    response_model=ConfirmPaymentOutputDTO,
+    status_code=status.HTTP_200_OK,
+)
+def confirm_payment(
+    service_request_id: UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_cliente),
+):
+    try:
+        use_case = make_confirm_payment_usecase(session)
+        input_dto = ConfirmPaymentInputDTO(
+            authenticated_user_id=current_user.id,
+            service_request_id=service_request_id,
+        )
+        output = use_case.execute(input_dto)
+        return output
+    except Exception as e:
+        raise_http_from_error(e)

@@ -52,3 +52,13 @@ class PaymentAttemptRepositoryInterface(ABC):
         service_request_id: UUID,
     ) -> int:
         raise NotImplementedError
+
+    @abstractmethod
+    def record_gateway_reference(
+        self,
+        attempt_id: UUID,
+        provider: str,
+        external_reference: str,
+        provider_message: Optional[str] = None,
+    ) -> Optional[PaymentAttempt]:
+        raise NotImplementedError
