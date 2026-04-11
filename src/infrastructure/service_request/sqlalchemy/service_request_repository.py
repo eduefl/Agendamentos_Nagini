@@ -40,6 +40,7 @@ from domain.payment.payment_attempt_status import PaymentAttemptStatus
 from domain.payment.payment_attempt_entity import PaymentAttempt
 from domain.service_request.service_request_exceptions import (
     ServiceRequestPaymentNotRequestedError,
+    PaymentAttemptNotProcessingError,
 )
 
 
@@ -734,6 +735,143 @@ class ServiceRequestRepository(ServiceRequestRepositoryInterface):
             .filter(ServiceRequestModel.id == service_request_id)
             .first()
         )
+        return self._model_to_entity(model)
+
+    def mark_payment_approved_and_complete_service_if_processing(
+        self,
+        service_request_id: UUID,
+        attempt_id: UUID,
+        provider: str,
+        external_reference: str,
+        provider_message,
+        processed_at: datetime,
+    ):
+        """
+        Atualiza atomicamente ServiceRequest (PAYMENT_PROCESSING -> COMPLETED) e
+        PaymentAttempt (PROCESSING -> APPROVED) num único commit.
+        """
+        sr_result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.status == ServiceRequestStatus.PAYMENT_PROCESSING.value,
+            )
+            .values(
+                status=ServiceRequestStatus.COMPLETED.value,
+                payment_approved_at=processed_at,
+                service_concluded_at=processed_at,
+                payment_last_status=PaymentStatusSnapshot.APPROVED.value,
+                payment_provider=provider,
+                payment_reference=external_reference,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+        if sr_result.rowcount == 0:
+            return None
+
+        pa_values = {
+            "status": PaymentAttemptStatus.APPROVED.value,
+            "processed_at": processed_at,
+            "approved_at": processed_at,
+            "provider": provider,
+            "external_reference": external_reference,
+        }
+        if provider_message is not None:
+            pa_values["provider_message"] = provider_message
+
+        pa_result = self.session.execute(
+            update(PaymentAttemptModel)
+            .where(
+                PaymentAttemptModel.id == attempt_id,
+                PaymentAttemptModel.service_request_id == service_request_id,
+                PaymentAttemptModel.status == PaymentAttemptStatus.PROCESSING.value,
+            )
+            .values(**pa_values)
+            .execution_options(synchronize_session="fetch")
+        )
+        if pa_result.rowcount == 0:
+            self.session.rollback()
+            raise PaymentAttemptNotProcessingError()
+
+        self.session.commit()
+
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+        if model is None:
+            return None
+        return self._model_to_entity(model)
+
+    def mark_payment_refused_and_reopen_for_payment_if_processing(
+        self,
+        service_request_id: UUID,
+        attempt_id: UUID,
+        provider: str,
+        external_reference: str,
+        refusal_reason,
+        provider_message,
+        processed_at: datetime,
+    ):
+        """
+        Atualiza atomicamente ServiceRequest (PAYMENT_PROCESSING -> AWAITING_PAYMENT) e
+        PaymentAttempt (PROCESSING -> REFUSED) num único commit.
+        """
+        sr_result = self.session.execute(
+            update(ServiceRequestModel)
+            .where(
+                ServiceRequestModel.id == service_request_id,
+                ServiceRequestModel.status == ServiceRequestStatus.PAYMENT_PROCESSING.value,
+            )
+            .values(
+                status=ServiceRequestStatus.AWAITING_PAYMENT.value,
+                payment_refused_at=processed_at,
+                service_concluded_at=None,
+                payment_last_status=PaymentStatusSnapshot.REFUSED.value,
+                payment_provider=provider,
+                payment_reference=external_reference,
+            )
+            .execution_options(synchronize_session="fetch")
+        )
+        if sr_result.rowcount == 0:
+            return None
+
+        pa_values = {
+            "status": PaymentAttemptStatus.REFUSED.value,
+            "processed_at": processed_at,
+            "refused_at": processed_at,
+            "provider": provider,
+            "external_reference": external_reference,
+        }
+        if refusal_reason is not None:
+            pa_values["refusal_reason"] = refusal_reason
+        if provider_message is not None:
+            pa_values["provider_message"] = provider_message
+
+        pa_result = self.session.execute(
+            update(PaymentAttemptModel)
+            .where(
+                PaymentAttemptModel.id == attempt_id,
+                PaymentAttemptModel.service_request_id == service_request_id,
+                PaymentAttemptModel.status == PaymentAttemptStatus.PROCESSING.value,
+            )
+            .values(**pa_values)
+            .execution_options(synchronize_session="fetch")
+        )
+        if pa_result.rowcount == 0:
+            self.session.rollback()
+            raise PaymentAttemptNotProcessingError()
+
+        self.session.commit()
+
+        model = (
+            self.session.query(ServiceRequestModel)
+            .filter(ServiceRequestModel.id == service_request_id)
+            .first()
+        )
+        if model is None:
+            return None
         return self._model_to_entity(model)
 
     def finish_service_and_open_payment_if_in_progress(

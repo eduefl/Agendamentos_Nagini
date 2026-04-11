@@ -138,4 +138,35 @@ class ServiceRequestPaymentAmountInvalidError(ConflictError):
 
 class ServiceRequestAlreadyCompletedError(ConflictError):
     def __init__(self):
-        super().__init__("Solicitação de serviço já foi concluída")   
+        super().__init__("Solicitação de serviço já foi concluída")
+
+
+class ServiceRequestPaymentNotProcessingError(ConflictError):
+    def __init__(self):
+        super().__init__(
+            "Solicitação não está em status PAYMENT_PROCESSING ou desfecho já foi aplicado"
+        )
+
+
+class PaymentAttemptNotProcessingError(ConflictError):
+    def __init__(self):
+        super().__init__(
+            "Tentativa de pagamento não está em status PROCESSING ou desfecho já foi aplicado"
+        )
+
+
+class PaymentResultStatusInvalidError(ValidationError):
+    def __init__(self):
+        super().__init__(
+            "Status do resultado de pagamento inválido: deve ser APPROVED ou REFUSED"
+        )
+
+
+class PaymentGatewayTechnicalFailureError(ConflictError):
+    """
+    Falha técnica do gateway de pagamento antes de devolver resultado.
+    O ServiceRequest permanece em PAYMENT_PROCESSING; nenhum desfecho foi aplicado.
+    Mapeado para 502/503 na camada HTTP.
+    """
+    def __init__(self, message: str = "Falha técnica do gateway de pagamento"):
+        super().__init__(message)   

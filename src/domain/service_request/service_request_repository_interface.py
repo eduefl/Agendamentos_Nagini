@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
+
 from domain.service_request.provider_operational_schedule_item_read_model import (
     ProviderOperationalScheduleItemReadModel,
 )
@@ -159,8 +160,49 @@ class ServiceRequestRepositoryInterface(ABC):
         service_request_id: UUID,
         now: datetime,
     ) -> Optional[ServiceRequest]:
-        raise NotImplementedError            
-    
+        raise NotImplementedError
+
+    @abstractmethod
+    def mark_payment_approved_and_complete_service_if_processing(
+        self,
+        service_request_id: UUID,
+        attempt_id: UUID,
+        provider: str,
+        external_reference: str,
+        provider_message: Optional[str],
+        processed_at: datetime,
+    ) -> Optional[ServiceRequest]:
+        """
+        Atualiza atomicamente ServiceRequest (PAYMENT_PROCESSING -> COMPLETED) e
+        PaymentAttempt (PROCESSING -> APPROVED) num único commit.
+
+        Retorna None se ServiceRequest não estiver em PAYMENT_PROCESSING.
+        Levanta PaymentAttemptNotProcessingError se PaymentAttempt não estiver em
+        PROCESSING (rollback implícito antes de levantar).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def mark_payment_refused_and_reopen_for_payment_if_processing(
+        self,
+        service_request_id: UUID,
+        attempt_id: UUID,
+        provider: str,
+        external_reference: str,
+        refusal_reason: Optional[str],
+        provider_message: Optional[str],
+        processed_at: datetime,
+    ) -> Optional[ServiceRequest]:
+        """
+        Atualiza atomicamente ServiceRequest (PAYMENT_PROCESSING -> AWAITING_PAYMENT) e
+        PaymentAttempt (PROCESSING -> REFUSED) num único commit.
+
+        Retorna None se ServiceRequest não estiver em PAYMENT_PROCESSING.
+        Levanta PaymentAttemptNotProcessingError se PaymentAttempt não estiver em
+        PROCESSING (rollback implícito antes de levantar).
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def finish_service_and_open_payment_if_in_progress(
         self,
