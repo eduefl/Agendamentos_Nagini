@@ -498,3 +498,84 @@ class TestStartProviderTravelUseCase:
                     service_request_id=mock_sr.id,
                 )
             )
+
+
+
+    def test_raises_not_found_when_current_is_none_after_race(self):
+        """
+        Cenário: start_travel_if_confirmed retorna None e a segunda busca
+        também não encontra o ServiceRequest (excluído concorrentemente).
+        """
+        provider_id = uuid4()
+        use_case, sr_repo, logistics = _make_use_case()
+
+        first_sr = _make_confirmed_sr(provider_id)
+        logistics.estimate_route.return_value = _make_route_estimate()
+        sr_repo.start_travel_if_confirmed.return_value = None
+
+        # Primeira chamada retorna o SR; a segunda (dentro do bloco None) retorna None
+        sr_repo.find_by_id.side_effect = [first_sr, None]
+
+        with pytest.raises(ServiceRequestNotFoundError):
+            use_case.execute(
+                StartProviderTravelInputDTO(
+                    authenticated_user_id=provider_id,
+                    service_request_id=first_sr.id,
+                )
+            )
+
+    def test_raises_provider_not_allowed_when_provider_changed_after_race(self):
+        """
+        Cenário: start_travel_if_confirmed retorna None e a segunda busca
+        devolve um SR com outro prestador aceite (corrida de aceite).
+        """
+        provider_id = uuid4()
+        other_provider_id = uuid4()
+        use_case, sr_repo, logistics = _make_use_case()
+
+        first_sr = _make_confirmed_sr(provider_id)
+
+        second_sr = MagicMock()
+        second_sr.id = first_sr.id
+        second_sr.accepted_provider_id = other_provider_id
+        second_sr.expires_at = None
+
+        logistics.estimate_route.return_value = _make_route_estimate()
+        sr_repo.start_travel_if_confirmed.return_value = None
+        sr_repo.find_by_id.side_effect = [first_sr, second_sr]
+
+        with pytest.raises(ProviderNotAllowedToStartTravelError):
+            use_case.execute(
+                StartProviderTravelInputDTO(
+                    authenticated_user_id=provider_id,
+                    service_request_id=first_sr.id,
+                )
+            )
+
+    def test_raises_expired_when_sr_expired_during_race(self):
+        """
+        Cenário: start_travel_if_confirmed retorna None e a segunda busca
+        devolve um SR expirado (expirou entre a verificação e o update).
+        """
+        provider_id = uuid4()
+        use_case, sr_repo, logistics = _make_use_case()
+
+        first_sr = _make_confirmed_sr(provider_id)
+
+        past = datetime.utcnow() - timedelta(minutes=5)
+        second_sr = MagicMock()
+        second_sr.id = first_sr.id
+        second_sr.accepted_provider_id = provider_id
+        second_sr.expires_at = past
+
+        logistics.estimate_route.return_value = _make_route_estimate()
+        sr_repo.start_travel_if_confirmed.return_value = None
+        sr_repo.find_by_id.side_effect = [first_sr, second_sr]
+
+        with pytest.raises(ServiceRequestExpiredError):
+            use_case.execute(
+                StartProviderTravelInputDTO(
+                    authenticated_user_id=provider_id,
+                    service_request_id=first_sr.id,
+                )
+            )

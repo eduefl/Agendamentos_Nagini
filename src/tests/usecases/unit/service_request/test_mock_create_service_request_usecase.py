@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -28,6 +28,37 @@ from usecases.service_request.create_service_request.create_service_request_dto 
 from usecases.service_request.create_service_request.create_service_request_usecase import (
     CreateServiceRequestUseCase,
 )
+def _make_use_case(email_sender=None):
+    sr_repo = MagicMock(spec=ServiceRequestRepositoryInterface)
+    user_repo = MagicMock(spec=userRepositoryInterface)
+    service_repo = MagicMock(spec=ServiceRepositoryInterface)
+    provider_service_repo = MagicMock(spec=ProviderServiceRepositoryInterface)
+    sender = email_sender or MagicMock(spec=EmailSenderInterface)
+    use_case = CreateServiceRequestUseCase(
+        service_request_repository=sr_repo,
+        user_repository=user_repo,
+        service_repository=service_repo,
+        provider_service_repository=provider_service_repo,
+        email_sender=sender,
+    )
+    return use_case, sr_repo, user_repo, service_repo, provider_service_repo, sender
+
+
+def _setup_happy_path(user_repo, service_repo, sr_repo, provider_service_repo, client_id, service_id):
+    mock_user = MagicMock(id=client_id, is_active=True)
+    mock_user.is_client.return_value = True
+    user_repo.find_user_by_id.return_value = mock_user
+
+    mock_service = MagicMock(id=service_id, name="Depilação")
+    service_repo.find_by_id.return_value = mock_service
+
+    sr_repo.create.side_effect = lambda sr: sr
+    sr_repo.update.side_effect = lambda sr: sr
+
+    mock_provider = MagicMock()
+    mock_provider.provider_email = "provider@example.com"
+    mock_provider.provider_name = "João Prestador"
+    provider_service_repo.list_eligible_providers_by_service_id.return_value = [mock_provider]
 
 
 class TestMockCreateServiceRequestUseCase:
@@ -311,3 +342,63 @@ class TestMockCreateServiceRequestUseCase:
             use_case.execute(input_dto)
 
         mock_service_request_repository.create.assert_not_called()
+
+
+class TestCreateServiceRequestTimezone:
+    def test_timezone_aware_desired_datetime_is_valid(self):
+        """
+        Garante que _current_reference_datetime é chamado com timezone-aware
+        datetime (cobre line 44: `return datetime.now(tz=desired_datetime.tzinfo)`).
+        """
+        client_id = uuid4()
+        service_id = uuid4()
+
+        use_case, sr_repo, user_repo, service_repo, provider_service_repo, sender = _make_use_case()
+        _setup_happy_path(user_repo, service_repo, sr_repo, provider_service_repo, client_id, service_id)
+
+        tz = timezone.utc
+        desired = datetime.now(tz=tz) + timedelta(days=1)
+
+        input_dto = CreateServiceRequestInputDTO(
+            client_id=client_id,
+            service_id=service_id,
+            desired_datetime=desired,
+            address="Rua das Flores, 123",
+        )
+
+        output = use_case.execute(input_dto)
+        assert isinstance(output, CreateServiceRequestOutputDTO)
+
+
+class TestCreateServiceRequestEmailFailure:
+    def test_email_send_failure_is_swallowed_and_request_succeeds(self):
+        """
+        Se o envio de e-mail para um prestador elegível falhar, a exceção deve
+        ser capturada silenciosamente (lines 106-107) e o use case deve retornar
+        normalmente.
+        """
+        client_id = uuid4()
+        service_id = uuid4()
+
+        failing_sender = MagicMock(spec=EmailSenderInterface)
+        failing_sender.send_service_request_notification_email.side_effect = Exception(
+            "SMTP connection refused"
+        )
+
+        use_case, sr_repo, user_repo, service_repo, provider_service_repo, _ = _make_use_case(
+            email_sender=failing_sender
+        )
+        _setup_happy_path(user_repo, service_repo, sr_repo, provider_service_repo, client_id, service_id)
+
+        desired = datetime.utcnow() + timedelta(days=1)
+        input_dto = CreateServiceRequestInputDTO(
+            client_id=client_id,
+            service_id=service_id,
+            desired_datetime=desired,
+            address="Rua das Flores, 123",
+        )
+
+        # Não deve propagar a exceção do e-mail
+        output = use_case.execute(input_dto)
+        assert isinstance(output, CreateServiceRequestOutputDTO)
+        failing_sender.send_service_request_notification_email.assert_called_once()

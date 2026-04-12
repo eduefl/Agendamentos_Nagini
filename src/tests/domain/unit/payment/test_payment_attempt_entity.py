@@ -262,3 +262,80 @@ class TestPaymentAttemptTemporalOrder:
         kwargs["processed_at"] = now + timedelta(seconds=5)
         with pytest.raises(ValueError, match="processing_started_at must not be after"):
             PaymentAttempt(**kwargs)
+
+
+    def test_id_must_be_uuid(self):
+        kw = _base_requested_kwargs()
+        kw["id"] = "not-a-uuid"
+        with pytest.raises(ValueError, match="ID must be a UUID"):
+            PaymentAttempt(**kw)
+
+    def test_service_request_id_must_be_uuid(self):
+        kw = _base_requested_kwargs()
+        kw["service_request_id"] = "not-a-uuid"
+        with pytest.raises(ValueError, match="service_request_id must be a UUID"):
+            PaymentAttempt(**kw)
+
+    def test_status_in_validate_must_be_valid(self):
+        """
+        Cobre a verificação de status dentro de validate() (distinta do
+        _normalize_status que dispara durante a atribuição).
+        """
+        pa = PaymentAttempt(**_base_requested_kwargs())
+        pa.status = "TOTALLY_INVALID"
+        with pytest.raises(ValueError, match="Invalid payment attempt status"):
+            pa.validate()
+
+    def test_requested_at_must_be_datetime(self):
+        kw = _base_requested_kwargs()
+        kw["requested_at"] = "2026-01-01"
+        with pytest.raises(ValueError, match="requested_at must be a datetime"):
+            PaymentAttempt(**kw)
+
+    def test_processing_started_at_must_be_datetime_or_none(self):
+        kw = _base_requested_kwargs()
+        kw["processing_started_at"] = "2026-01-01"
+        with pytest.raises(ValueError, match="processing_started_at must be a datetime"):
+            PaymentAttempt(**kw)
+
+    def test_processed_at_must_be_datetime_or_none(self):
+        kw = _base_requested_kwargs()
+        kw["processed_at"] = "2026-01-01"
+        with pytest.raises(ValueError, match="processed_at must be a datetime"):
+            PaymentAttempt(**kw)
+
+    def test_approved_at_must_be_datetime_or_none(self):
+        kw = _base_requested_kwargs()
+        kw["approved_at"] = "2026-01-01"
+        with pytest.raises(ValueError, match="approved_at must be a datetime"):
+            PaymentAttempt(**kw)
+
+    def test_refused_at_must_be_datetime_or_none(self):
+        kw = _base_requested_kwargs()
+        kw["refused_at"] = "2026-01-01"
+        with pytest.raises(ValueError, match="refused_at must be a datetime"):
+            PaymentAttempt(**kw)
+
+    def test_provider_must_be_str_or_none(self):
+        kw = _base_requested_kwargs()
+        kw["provider"] = 12345
+        with pytest.raises(ValueError, match="provider must be a string"):
+            PaymentAttempt(**kw)
+
+    def test_external_reference_must_be_str_or_none(self):
+        kw = _base_requested_kwargs()
+        kw["external_reference"] = 12345
+        with pytest.raises(ValueError, match="external_reference must be a string"):
+            PaymentAttempt(**kw)
+
+    def test_refusal_reason_must_be_str_or_none(self):
+        kw = _base_requested_kwargs()
+        kw["refusal_reason"] = 12345
+        with pytest.raises(ValueError, match="refusal_reason must be a string"):
+            PaymentAttempt(**kw)
+
+    def test_provider_message_must_be_str_or_none(self):
+        kw = _base_requested_kwargs()
+        kw["provider_message"] = 12345
+        with pytest.raises(ValueError, match="provider_message must be a string"):
+            PaymentAttempt(**kw)

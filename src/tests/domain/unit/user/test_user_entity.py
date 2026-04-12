@@ -1,8 +1,21 @@
 from uuid import uuid4
 from datetime import datetime, timedelta
 
+from domain.user.user_entity import User
 import pytest
 
+
+def _make_valid_user(**overrides):
+    data = {
+        "id": uuid4(),
+        "name": "Ana Silva",
+        "email": f"ana.{uuid4().hex[:6]}@example.com",
+        "hashed_password": "hashed-pwd",
+        "is_active": False,
+        "roles": {"cliente"},
+    }
+    data.update(overrides)
+    return User(**data)
 
 class TestUser:
     def test_user_initialization(self, make_user):
@@ -192,3 +205,143 @@ class TestUser:
         assert user.is_client() is False
         
     
+
+    def test_activation_code_must_be_string_raises(self):
+        with pytest.raises(ValueError, match="Activation code must be a string"):
+            _make_valid_user(
+                activation_code=123,
+                activation_code_expires_at=datetime.utcnow() + timedelta(hours=1),
+            )
+
+    def test_activation_code_cannot_be_empty_when_provided(self):
+        with pytest.raises(ValueError, match="Activation code cannot be empty when provided"):
+            _make_valid_user(
+                activation_code="",
+                activation_code_expires_at=datetime.utcnow() + timedelta(hours=1),
+            )
+
+    def test_activation_code_expires_at_must_be_datetime(self):
+        with pytest.raises(ValueError, match="Activation code expiration must be a datetime"):
+            _make_valid_user(
+                activation_code=None,
+                activation_code_expires_at="2026-12-31",
+            )
+
+    def test_roles_must_be_set_when_mutated(self):
+        user = _make_valid_user()
+        user.roles = "not-a-set"
+        with pytest.raises(ValueError, match="roles must be a set of strings"):
+            user.validate()
+
+
+    def test_add_role_raises_when_empty(self):
+        user = _make_valid_user()
+        with pytest.raises(ValueError, match="Role cannot be empty"):
+            user.add_role("")
+
+    def test_add_role_raises_when_blank(self):
+        user = _make_valid_user()
+        with pytest.raises(ValueError, match="Role cannot be empty"):
+            user.add_role("   ")
+
+    def test_add_role_raises_when_contains_spaces(self):
+        user = _make_valid_user()
+        with pytest.raises(ValueError, match="Role cannot contain spaces"):
+            user.add_role("admin user")
+
+    def test_add_role_succeeds(self):
+        user = _make_valid_user(roles=set())
+        user.add_role("prestador")
+        assert "prestador" in user.roles
+
+    def test_add_role_normalizes_case(self):
+        user = _make_valid_user(roles=set())
+        user.add_role("CLIENTE")
+        assert "cliente" in user.roles
+
+
+    def test_remove_role_removes_existing(self):
+        user = _make_valid_user(roles={"cliente", "prestador"})
+        user.remove_role("prestador")
+        assert "prestador" not in user.roles
+        assert "cliente" in user.roles
+
+    def test_remove_role_is_idempotent_when_not_present(self):
+        user = _make_valid_user(roles={"cliente"})
+        user.remove_role("prestador")
+        assert user.roles == {"cliente"}
+
+    def test_has_role_returns_true(self):
+        user = _make_valid_user(roles={"cliente"})
+        assert user.has_role("cliente") is True
+
+    def test_has_role_returns_false(self):
+        user = _make_valid_user(roles={"cliente"})
+        assert user.has_role("prestador") is False
+
+    def test_has_role_normalizes_case(self):
+        user = _make_valid_user(roles={"cliente"})
+        assert user.has_role("CLIENTE") is True
+
+    def test_deactivate_sets_is_active_false(self):
+        user = _make_valid_user(is_active=True)
+        user.deactivate()
+        assert user.is_active is False
+
+    def test_activate_sets_is_active_true(self):
+        expires = datetime.utcnow() + timedelta(hours=1)
+        user = _make_valid_user(
+            is_active=False,
+            activation_code="ABC123",
+            activation_code_expires_at=expires,
+        )
+        user.activate()
+        assert user.is_active is True
+        assert user.activation_code is None
+        assert user.activation_code_expires_at is None
+
+    def test_set_activation_code_raises_when_empty(self):
+        user = _make_valid_user()
+        with pytest.raises(ValueError, match="Activation code must be a non-empty string"):
+            user.set_activation_code("", datetime.utcnow() + timedelta(hours=1))
+
+    def test_set_activation_code_raises_when_blank(self):
+        user = _make_valid_user()
+        with pytest.raises(ValueError, match="Activation code must be a non-empty string"):
+            user.set_activation_code("   ", datetime.utcnow() + timedelta(hours=1))
+
+    def test_set_activation_code_succeeds(self):
+        user = _make_valid_user()
+        expires = datetime.utcnow() + timedelta(hours=2)
+        user.set_activation_code("XYZ999", expires)
+        assert user.activation_code == "XYZ999"
+        assert user.activation_code_expires_at == expires
+
+    def test_is_provider_returns_true(self):
+        user = _make_valid_user(roles={"prestador"})
+        assert user.is_provider() is True
+
+    def test_is_provider_returns_false(self):
+        user = _make_valid_user(roles={"cliente"})
+        assert user.is_provider() is False
+
+    def test_is_client_returns_true(self):
+        user = _make_valid_user(roles={"cliente"})
+        assert user.is_client() is True
+
+    def test_is_client_returns_false(self):
+        user = _make_valid_user(roles={"prestador"})
+        assert user.is_client() is False
+
+
+    def test_str_returns_string(self):
+        user = _make_valid_user(name="Carlos", roles={"cliente", "prestador"})
+        result = str(user)
+        assert "Carlos" in result
+        assert "is_active" in result
+        assert "roles" in result
+
+    def test_str_does_not_include_password(self):
+        user = _make_valid_user(hashed_password="super-secret-hash")
+        result = str(user)
+        assert "super-secret-hash" not in result

@@ -388,3 +388,54 @@ class TestUserSqlalchemyRepository:
         roles = [r.name for r in (row.roles or [])]
         assert roles.count("cliente") == 1
         
+
+    def test_list_user_roles_raises_when_user_not_found(self, tst_db_session, seed_roles):
+        repo = userRepository(session=tst_db_session)
+        with pytest.raises(UserNotFoundError):
+            repo.list_user_roles(uuid4())
+
+    def test_list_user_roles_returns_set_for_existing_user(
+        self, make_user, tst_db_session, seed_roles
+    ):
+        from datetime import datetime, timedelta
+        from infrastructure.user.sqlalchemy.user_model import UserModel
+
+        repo = userRepository(session=tst_db_session)
+        user = make_user(roles={"cliente"})
+
+        row = UserModel(
+            id=user.id,
+            name=user.name,
+            email=user.email,
+            hashed_password=user.hashed_password,
+            is_active=user.is_active,
+        )
+        row.roles.append(repo._get_role_by_name("cliente"))
+        tst_db_session.add(row)
+        tst_db_session.commit()
+
+        roles = repo.list_user_roles(user.id)
+        assert "cliente" in roles
+
+    def test_add_role_returns_none_after_commit(
+        self, make_user, tst_db_session, seed_roles
+    ):
+        from infrastructure.user.sqlalchemy.user_model import UserModel
+
+        repo = userRepository(session=tst_db_session)
+        user = make_user(roles={"cliente"})
+
+        row = UserModel(
+            id=user.id,
+            name=user.name,
+            email=user.email,
+            hashed_password=user.hashed_password,
+            is_active=user.is_active,
+        )
+        row.roles.append(repo._get_role_by_name("cliente"))
+        tst_db_session.add(row)
+        tst_db_session.commit()
+
+        result = repo.add_role_to_user(user_id=user.id, role_name="prestador")
+        assert result is None
+        roles = repo.list_user_roles(user.id)
