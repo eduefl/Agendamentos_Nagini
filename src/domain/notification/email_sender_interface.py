@@ -74,3 +74,44 @@ class EmailSenderInterface(ABC):
         payment_requested_at: datetime,
     ) -> None:
         raise NotImplementedError
+
+    @abstractmethod
+    def send_payment_approved_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        payment_amount: Decimal,
+        payment_approved_at: datetime,
+    ) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def send_payment_approved_to_provider(
+        self,
+        provider_email: str,
+        provider_name: str,
+        payment_amount: Decimal,
+        payment_approved_at: datetime,
+    ) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def send_payment_refused_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        payment_amount: Decimal,
+        payment_refused_at: datetime,
+        refusal_reason: Optional[str] = None,
+    ) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def send_payment_refused_to_provider(
+        self,
+        provider_email: str,
+        provider_name: str,
+        payment_amount: Decimal,
+        payment_refused_at: datetime,
+    ) -> None:
+        raise NotImplementedError

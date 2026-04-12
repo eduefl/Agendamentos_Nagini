@@ -20,6 +20,10 @@ from domain.service_request.service_request_exceptions import (
     ServiceRequestPaymentNotRequestedError,
     ServiceRequestProviderArrivalNotRegisteredError,
     ServiceRequestUnavailableError,
+    ServiceRequestPaymentNotProcessingError,
+    PaymentAttemptNotProcessingError,
+    PaymentResultStatusInvalidError,
+    PaymentGatewayTechnicalFailureError,
 )
 from domain.__seedwork.exceptions import ForbiddenError, ValidationError
 from domain.service.service_exceptions import (
@@ -65,6 +69,8 @@ def raise_http_from_error(e: Exception) -> None:
         ),
     ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    if isinstance(e, PaymentGatewayTechnicalFailureError):
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
     if isinstance(
         e,
         (
@@ -91,6 +97,8 @@ def raise_http_from_error(e: Exception) -> None:
             ServiceRequestAlreadyCompletedError,
             ServiceRequestPaymentAmountInvalidError,
             ServiceRequestPaymentNotRequestedError,
+            ServiceRequestPaymentNotProcessingError,
+            PaymentAttemptNotProcessingError,
         ),
     ):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
@@ -106,6 +114,7 @@ def raise_http_from_error(e: Exception) -> None:
             InvalidServiceRequestDateError,
             ProviderDoesNotServeThisRequestError,
             ValidationError,
+            PaymentResultStatusInvalidError,
         ),
     ):
         raise HTTPException(

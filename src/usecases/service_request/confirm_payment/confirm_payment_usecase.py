@@ -17,6 +17,7 @@ from domain.service_request.service_request_exceptions import (
     ServiceRequestPaymentAlreadyProcessingError,
     ServiceRequestPaymentAmountInvalidError,
     ServiceRequestPaymentNotRequestedError,
+    PaymentGatewayTechnicalFailureError,
 )
 from domain.service_request.service_request_repository_interface import (
     ServiceRequestRepositoryInterface,
@@ -95,6 +96,8 @@ class ConfirmPaymentUseCase:
             raise ServiceRequestNotAwaitingPaymentError()
 
         # 7. Chamar a ACL de pagamento (banco já reflete PAYMENT_PROCESSING)
+        #    Falha técnica da ACL mantém o estado em PAYMENT_PROCESSING e
+        #    propaga PaymentGatewayTechnicalFailureError -> 502/503 na camada HTTP.
         external_reference = str(uuid4())
         payment_result = self._call_payment_acl(
             external_reference=external_reference,
@@ -110,10 +113,13 @@ class ConfirmPaymentUseCase:
             now=now,
         )
 
-        # 9. Devolver resposta mínima para a API
+        # 9. Re-ler o ServiceRequest para obter o estado final (COMPLETED ou AWAITING_PAYMENT)
+        final = self._service_request_repository.find_by_id(updated.id) or updated
+
+        # 10. Devolver resposta com estado final para a API
         return ConfirmPaymentOutputDTO(
-            service_request_id=updated.id,
-            status=updated.status,
+            service_request_id=final.id,
+            status=final.status,
             payment_processing_started_at=updated.payment_processing_started_at,
             payment_reference=payment_result.external_reference,
         )
@@ -153,10 +159,20 @@ class ConfirmPaymentUseCase:
         return attempt
 
     def _call_payment_acl(self, external_reference, updated, attempt):
-        return self._payment_acl_gateway.process_payment(
-            external_reference=external_reference,
-            amount=updated.payment_amount,
-            payer_id=updated.client_id,
-            service_request_id=updated.id,
-            requested_at=updated.payment_requested_at,
-        )
+        try:
+            return self._payment_acl_gateway.process_payment(
+                external_reference=external_reference,
+                amount=updated.payment_amount,
+                payer_id=updated.client_id,
+                service_request_id=updated.id,
+                requested_at=updated.payment_requested_at,
+            )
+        except Exception as exc:
+            logger.exception(
+                "Falha técnica na ACL de pagamento service_request_id=%s. "
+                "Estado permanece PAYMENT_PROCESSING.",
+                updated.id,
+            )
+            raise PaymentGatewayTechnicalFailureError(
+                f"Falha técnica no gateway de pagamento: {exc}"
+            ) from exc

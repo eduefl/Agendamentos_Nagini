@@ -274,4 +274,151 @@ Acesse a plataforma para efetuar o pagamento.
         except (smtplib.SMTPException, OSError, TimeoutError, KeyError) as exc:
             raise EmailDeliveryError(
                 "Falha ao enviar email de cobrança para o cliente"
+            ) from exc
+
+    def send_payment_approved_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        payment_amount: Decimal,
+        payment_approved_at: datetime,
+    ) -> None:
+        try:
+            remetente = os.environ["EMAIL_SENDER_ADDRESS"]
+            senha = os.environ["EMAIL_SENDER_PASSWORD"]
+
+            hora_aprovacao = payment_approved_at.strftime("%d/%m/%Y %H:%M")
+
+            assunto = "Pagamento aprovado — atendimento concluído"
+            mensagem = f"""
+Olá, {client_name}!
+Seu pagamento foi aprovado com sucesso.
+Valor pago: R$ {payment_amount:.2f}
+Data de aprovação: {hora_aprovacao}
+O atendimento foi concluído. Obrigado!
+""".strip()
+
+            msg = EmailMessage()
+            msg["From"] = remetente
+            msg["To"] = client_email
+            msg["Subject"] = assunto
+            msg.set_content(mensagem)
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as email:
+                email.login(remetente, senha)
+                email.send_message(msg)
+        except (smtplib.SMTPException, OSError, TimeoutError, KeyError) as exc:
+            raise EmailDeliveryError(
+                "Falha ao enviar email de pagamento aprovado para o cliente"
+            ) from exc
+
+    def send_payment_approved_to_provider(
+        self,
+        provider_email: str,
+        provider_name: str,
+        payment_amount: Decimal,
+        payment_approved_at: datetime,
+    ) -> None:
+        try:
+            remetente = os.environ["EMAIL_SENDER_ADDRESS"]
+            senha = os.environ["EMAIL_SENDER_PASSWORD"]
+
+            hora_aprovacao = payment_approved_at.strftime("%d/%m/%Y %H:%M")
+
+            assunto = "Pagamento recebido — atendimento concluído"
+            mensagem = f"""
+Olá, {provider_name}!
+O pagamento referente ao seu atendimento foi confirmado.
+Valor recebido: R$ {payment_amount:.2f}
+Data de aprovação: {hora_aprovacao}
+O atendimento foi concluído com sucesso.
+""".strip()
+
+            msg = EmailMessage()
+            msg["From"] = remetente
+            msg["To"] = provider_email
+            msg["Subject"] = assunto
+            msg.set_content(mensagem)
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as email:
+                email.login(remetente, senha)
+                email.send_message(msg)
+        except (smtplib.SMTPException, OSError, TimeoutError, KeyError) as exc:
+            raise EmailDeliveryError(
+                "Falha ao enviar email de pagamento aprovado para o prestador"
+            ) from exc
+
+    def send_payment_refused_to_client(
+        self,
+        client_email: str,
+        client_name: str,
+        payment_amount: Decimal,
+        payment_refused_at: datetime,
+        refusal_reason: Optional[str] = None,
+    ) -> None:
+        try:
+            remetente = os.environ["EMAIL_SENDER_ADDRESS"]
+            senha = os.environ["EMAIL_SENDER_PASSWORD"]
+
+            hora_recusa = payment_refused_at.strftime("%d/%m/%Y %H:%M")
+            motivo = refusal_reason or "Não informado"
+
+            assunto = "Pagamento recusado — nova tentativa necessária"
+            mensagem = f"""
+Olá, {client_name}!
+Infelizmente seu pagamento foi recusado.
+Valor: R$ {payment_amount:.2f}
+Data da recusa: {hora_recusa}
+Motivo: {motivo}
+Acesse a plataforma para tentar novamente.
+""".strip()
+
+            msg = EmailMessage()
+            msg["From"] = remetente
+            msg["To"] = client_email
+            msg["Subject"] = assunto
+            msg.set_content(mensagem)
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as email:
+                email.login(remetente, senha)
+                email.send_message(msg)
+        except (smtplib.SMTPException, OSError, TimeoutError, KeyError) as exc:
+            raise EmailDeliveryError(
+                "Falha ao enviar email de pagamento recusado para o cliente"
+            ) from exc
+
+    def send_payment_refused_to_provider(
+        self,
+        provider_email: str,
+        provider_name: str,
+        payment_amount: Decimal,
+        payment_refused_at: datetime,
+    ) -> None:
+        try:
+            remetente = os.environ["EMAIL_SENDER_ADDRESS"]
+            senha = os.environ["EMAIL_SENDER_PASSWORD"]
+
+            hora_recusa = payment_refused_at.strftime("%d/%m/%Y %H:%M")
+
+            assunto = "Pagamento recusado pelo cliente"
+            mensagem = f"""
+Olá, {provider_name}!
+O pagamento referente ao seu atendimento foi recusado pelo processador.
+Valor: R$ {payment_amount:.2f}
+Data da recusa: {hora_recusa}
+O atendimento voltou a aguardar pagamento.
+""".strip()
+
+            msg = EmailMessage()
+            msg["From"] = remetente
+            msg["To"] = provider_email
+            msg["Subject"] = assunto
+            msg.set_content(mensagem)
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as email:
+                email.login(remetente, senha)
+                email.send_message(msg)
+        except (smtplib.SMTPException, OSError, TimeoutError, KeyError) as exc:
+            raise EmailDeliveryError(
+                "Falha ao enviar email de pagamento recusado para o prestador"
             ) from exc        

@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 from uuid import UUID
 
 from domain.notification.notification_exceptions import EmailDeliveryError
@@ -78,4 +79,64 @@ class EmailServiceRequestNotificationGateway(ServiceRequestNotificationGatewayIn
             client_name=client.name,
             payment_amount=payment_amount,
             payment_requested_at=payment_requested_at,
+        )
+
+    def notify_payment_approved(
+        self,
+        client_id: UUID,
+        provider_id: UUID,
+        service_request_id: UUID,
+        payment_amount: Decimal,
+        payment_approved_at: datetime,
+    ) -> None:
+        client = self._user_repository.find_user_by_id(client_id)
+        if client is None:
+            raise EmailDeliveryError(f"Cliente com ID {client_id} não encontrado")
+
+        provider = self._user_repository.find_user_by_id(provider_id)
+        if provider is None:
+            raise EmailDeliveryError(f"Prestador com ID {provider_id} não encontrado")
+
+        self._email_sender.send_payment_approved_to_client(
+            client_email=client.email,
+            client_name=client.name,
+            payment_amount=payment_amount,
+            payment_approved_at=payment_approved_at,
+        )
+        self._email_sender.send_payment_approved_to_provider(
+            provider_email=provider.email,
+            provider_name=provider.name,
+            payment_amount=payment_amount,
+            payment_approved_at=payment_approved_at,
+        )
+
+    def notify_payment_refused(
+        self,
+        client_id: UUID,
+        provider_id: UUID,
+        service_request_id: UUID,
+        payment_amount: Decimal,
+        payment_refused_at: datetime,
+        refusal_reason: Optional[str] = None,
+    ) -> None:
+        client = self._user_repository.find_user_by_id(client_id)
+        if client is None:
+            raise EmailDeliveryError(f"Cliente com ID {client_id} não encontrado")
+
+        provider = self._user_repository.find_user_by_id(provider_id)
+        if provider is None:
+            raise EmailDeliveryError(f"Prestador com ID {provider_id} não encontrado")
+
+        self._email_sender.send_payment_refused_to_client(
+            client_email=client.email,
+            client_name=client.name,
+            payment_amount=payment_amount,
+            payment_refused_at=payment_refused_at,
+            refusal_reason=refusal_reason,
+        )
+        self._email_sender.send_payment_refused_to_provider(
+            provider_email=provider.email,
+            provider_name=provider.name,
+            payment_amount=payment_amount,
+            payment_refused_at=payment_refused_at,
         )

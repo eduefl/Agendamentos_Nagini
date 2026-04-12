@@ -283,13 +283,15 @@ class TestConfirmPaymentRoute:
         assert response.status_code == 200
         body = response.json()
         assert body["service_request_id"] == str(sr.id)
-        assert body["status"] == ServiceRequestStatus.PAYMENT_PROCESSING.value
+        # Fase 4: mock approves amount=150 (< 500) -> COMPLETED
+        assert body["status"] == ServiceRequestStatus.COMPLETED.value
         assert body["payment_processing_started_at"] is not None
         assert body["payment_reference"] is not None
 
-    def test_success_transitions_to_payment_processing(
+    def test_success_transitions_to_completed_after_approval(
         self, client, tst_db_session, make_user, make_service, seed_roles
     ):
+        """Fase 4: pagamento aprovado (amount<500) -> COMPLETED com timestamps."""
         cli = _add_user(
             tst_db_session, make_user,
             name="Cliente", email=f"cli_{uuid4().hex}@example.com",
@@ -312,14 +314,16 @@ class TestConfirmPaymentRoute:
 
         repo = ServiceRequestRepository(session=tst_db_session)
         updated = repo.find_by_id(sr.id)
-        assert updated.status == ServiceRequestStatus.PAYMENT_PROCESSING.value
-        assert updated.payment_processing_started_at is not None
-        assert updated.payment_last_status == PaymentStatusSnapshot.PROCESSING.value
+        assert updated.status == ServiceRequestStatus.COMPLETED.value
+        assert updated.payment_approved_at is not None
+        assert updated.service_concluded_at is not None
+        assert updated.payment_last_status == PaymentStatusSnapshot.APPROVED.value
         assert updated.payment_attempt_count == 1  # unchanged
 
-    def test_success_payment_attempt_becomes_processing(
+    def test_success_payment_attempt_becomes_approved(
         self, client, tst_db_session, make_user, make_service, seed_roles
     ):
+        """Fase 4: após pagamento aprovado, PaymentAttempt deve estar APPROVED."""
         cli = _add_user(
             tst_db_session, make_user,
             name="Cliente", email=f"cli_{uuid4().hex}@example.com",
@@ -343,8 +347,9 @@ class TestConfirmPaymentRoute:
         pa_repo = PaymentAttemptRepository(session=tst_db_session)
         attempt = pa_repo.find_latest_by_service_request_id(sr.id)
         assert attempt is not None
-        assert attempt.status == PaymentAttemptStatus.PROCESSING.value
-        assert attempt.processing_started_at is not None
+        assert attempt.status == PaymentAttemptStatus.APPROVED.value
+        assert attempt.processed_at is not None
+        assert attempt.approved_at is not None
 
     def test_double_click_returns_409(
         self, client, tst_db_session, make_user, make_service, seed_roles
@@ -372,10 +377,10 @@ class TestConfirmPaymentRoute:
         r2 = client.patch(url, headers=headers)
         assert r2.status_code == 409
 
-    def test_not_completed_after_phase3(
+    def test_approved_payment_sets_service_concluded_at(
         self, client, tst_db_session, make_user, make_service, seed_roles
     ):
-        """Fase 3 não fecha o atendimento — status permanece PAYMENT_PROCESSING."""
+        """Fase 4: pagamento aprovado preenche service_concluded_at."""
         cli = _add_user(
             tst_db_session, make_user,
             name="Cliente", email=f"cli_{uuid4().hex}@example.com",
@@ -398,9 +403,8 @@ class TestConfirmPaymentRoute:
 
         repo = ServiceRequestRepository(session=tst_db_session)
         updated = repo.find_by_id(sr.id)
-        assert updated.status == ServiceRequestStatus.PAYMENT_PROCESSING.value
-        assert updated.status != ServiceRequestStatus.COMPLETED.value
-        assert updated.service_concluded_at is None
+        assert updated.status == ServiceRequestStatus.COMPLETED.value
+        assert updated.service_concluded_at is not None
 
     def test_gateway_reference_persisted_on_sr_after_success(
         self, client, tst_db_session, make_user, make_service, seed_roles

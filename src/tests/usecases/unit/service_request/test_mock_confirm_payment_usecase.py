@@ -43,6 +43,7 @@ from domain.service_request.service_request_exceptions import (
     ServiceRequestPaymentAlreadyProcessingError,
     ServiceRequestPaymentAmountInvalidError,
     ServiceRequestPaymentNotRequestedError,
+    PaymentGatewayTechnicalFailureError,
 )
 from domain.service_request.service_request_repository_interface import (
     ServiceRequestRepositoryInterface,
@@ -120,16 +121,33 @@ def _make_acl_result(external_reference=None):
     )
 
 
+def _make_completed_sr(sr):
+    final = MagicMock()
+    final.id = sr.id
+    final.client_id = sr.client_id
+    final.status = ServiceRequestStatus.COMPLETED.value
+    final.payment_processing_started_at = datetime.utcnow()
+    final.payment_approved_at = datetime.utcnow()
+    final.service_concluded_at = datetime.utcnow()
+    final.payment_amount = sr.payment_amount
+    final.payment_reference = str(uuid4())
+    return final
+
+
 def _setup_success(sr_repo, pa_repo, acl, client_id=None):
     """Sets up mocks for the happy path; returns (mock_sr, attempt, updated, acl_result)."""
     client_id = client_id or uuid4()
     mock_sr = _make_awaiting_payment_sr(client_id=client_id)
-    sr_repo.find_by_id.return_value = mock_sr
+
+    updated = _make_updated_sr(mock_sr)
+    final_sr = _make_completed_sr(mock_sr)
+
+    # First call: validate SR; subsequent calls (final re-read): return final state
+    sr_repo.find_by_id.side_effect = [mock_sr, final_sr]
 
     attempt = _make_requested_attempt(service_request_id=mock_sr.id)
     pa_repo.find_latest_by_service_request_id.return_value = attempt
 
-    updated = _make_updated_sr(mock_sr)
     sr_repo.start_payment_processing_and_mark_attempt_if_awaiting_payment.return_value = updated
 
     acl_result = _make_acl_result()
@@ -154,7 +172,8 @@ class TestConfirmPaymentUseCase:
 
         assert isinstance(output, ConfirmPaymentOutputDTO)
         assert output.service_request_id == mock_sr.id
-        assert output.status == ServiceRequestStatus.PAYMENT_PROCESSING.value
+        # Fase 4: status final é COMPLETED (mock approved) ou AWAITING_PAYMENT (mock refused)
+        assert output.status == ServiceRequestStatus.COMPLETED.value
         assert output.payment_processing_started_at is not None
         assert output.payment_reference == acl_result.external_reference
 
@@ -250,13 +269,13 @@ class TestConfirmPaymentUseCase:
         assert call_kwargs["payment_result"] == acl_result
 
     def test_acl_technical_failure_does_not_mark_as_approved(self):
-        """Falha técnica da ACL não deve produzir aprovação indevida."""
+        """Falha técnica da ACL não deve produzir aprovação indevida — propaga PaymentGatewayTechnicalFailureError."""
         use_case, sr_repo, pa_repo, acl, apply_uc = _make_use_case()
         client_id, mock_sr, attempt, updated, _ = _setup_success(sr_repo, pa_repo, acl)
 
         acl.process_payment.side_effect = RuntimeError("gateway timeout")
 
-        with pytest.raises(RuntimeError, match="gateway timeout"):
+        with pytest.raises(PaymentGatewayTechnicalFailureError):
             use_case.execute(
                 ConfirmPaymentInputDTO(
                     authenticated_user_id=client_id,
