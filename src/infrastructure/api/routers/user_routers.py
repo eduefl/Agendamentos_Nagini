@@ -16,7 +16,6 @@ from sqlalchemy.orm import Session
 from infrastructure.api.database import get_session
 from infrastructure.presenters.user_presenter import UserPresenter
 from infrastructure.security.passlib_password_hasher import PasslibPasswordHasher
-from infrastructure.task.sqlalchemy.task_repository import taskRepository
 from infrastructure.user.sqlalchemy.user_repository import userRepository
 from usecases.user.add_user.add_user_dto import AddUserInputDTO
 from usecases.user.add_user.add_user_usecase import AddUserUseCase
@@ -97,24 +96,6 @@ def add_prestador(request: AddPrestadorInputDTO, session: Session = Depends(get_
     except Exception as e:
         raise_http_from_error(e)
 
-# @router.get("/{user_id}", status_code=status.HTTP_200_OK)
-# def find_user_by_id(user_id: UUID, session: Session = Depends(get_session)):
-#     try:
-#         user_repository = userRepository(session=session)
-#         task_repository = taskRepository(session=session)
-
-#         usecase = FindUserByIdUseCase(
-#             user_repository=user_repository,
-#             task_repository=task_repository,
-#         )
-#         output = usecase.execute(input=findUserByIdInputDTO(id=user_id))
-
-#         output_json = UserPresenter.toJSON(output)
-#         output_xml = UserPresenter.toXml(output)
-#         return {"json": output_json, "xml": output_xml}
-
-#     except Exception as e:
-#         raise_http_from_error(e)
 
 
 

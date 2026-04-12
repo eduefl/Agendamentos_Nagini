@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import List, Optional, Set, Iterable
 from uuid import UUID
 
-from domain.task.task_entity import Task
 
 
 class User:
@@ -14,7 +13,6 @@ class User:
     activation_code: Optional[str]
     activation_code_expires_at: Optional[datetime]
     roles: Set[str]
-    tasks: List[Task]
 
     def __init__(
         self,
@@ -35,7 +33,6 @@ class User:
         self.activation_code = activation_code
         self.activation_code_expires_at = activation_code_expires_at
         self.roles = set(roles) if roles is not None else set()
-        self.tasks = []
         self.validate()
 
     def validate(self) -> bool:
@@ -117,30 +114,6 @@ class User:
 
     def has_role(self, role: str) -> bool:
         return role.strip().lower() in self.roles
-
-    # --- tasks ---
-    def collect_tasks(self, tasks: List[Task]) -> None:
-        """
-        Adds a list of tasks to the user's task list.
-
-        Parameters:
-        tasks (List[Task]): A list of Task objects to be added to the user's tasks.
-
-        Returns:
-        None
-        """
-
-        self.tasks.extend(tasks)
-
-    def count_pending_tasks(self) -> int:
-        """
-        Counts the number of pending tasks.
-
-        Returns:
-                int: The total number of tasks that are not completed.
-        """
-
-        return sum(1 for task in self.tasks if not task.completed)
 
     # --- state ---
     def deactivate(self) -> None:

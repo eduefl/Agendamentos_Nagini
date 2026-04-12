@@ -37,9 +37,6 @@ class UserPresenter:
     @toJSON.register
     @staticmethod
     def _(user_dto: findUserByIdOutputDTO) -> dict:
-        tasks = []
-        for t in getattr(user_dto, "tasks", []) or []:
-            tasks.append(_pydantic_to_dict(t))
 
         return {
             "id": str(user_dto.id),
@@ -47,8 +44,6 @@ class UserPresenter:
             "email": str(getattr(user_dto, "email", "")) if getattr(user_dto, "email", None) is not None else None,
             "is_active": getattr(user_dto, "is_active", None),
             "roles": _normalize_roles(getattr(user_dto, "roles", None)),
-            "tasks": tasks,
-            "pending_tasks": user_dto.pending_tasks,
         }
 
     @toJSON.register
@@ -150,14 +145,6 @@ class UserPresenter:
             for r in _normalize_roles(roles) or []:
                 ET.SubElement(roles_el, "role").text = str(r)
 
-        for task in getattr(user_dto, "tasks", []) or []:
-            task_element = ET.SubElement(user_data, "task")
-            ET.SubElement(task_element, "id").text = str(task.id)
-            ET.SubElement(task_element, "title").text = str(task.title)
-            ET.SubElement(task_element, "description").text = str(task.description)
-            ET.SubElement(task_element, "completed").text = str(task.completed)
-
-        ET.SubElement(user_data, "pending_tasks").text = str(user_dto.pending_tasks)
         return ET.tostring(user_data, encoding="unicode")
 
     @toXml.register

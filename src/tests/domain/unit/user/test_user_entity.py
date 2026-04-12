@@ -24,7 +24,6 @@ class TestUser:
         assert user.email == user_email
         assert user.hashed_password == user_hashed_password
         assert user.is_active is False
-        assert user.tasks == []
         assert user.roles == {"prestador"}
 
     def test_user_id_validation(self, make_user):

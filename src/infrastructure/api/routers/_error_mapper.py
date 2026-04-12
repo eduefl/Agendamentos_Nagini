@@ -48,7 +48,6 @@ from domain.user.user_exceptions import (
     UserAlreadyActiveError,
     UserNotFoundError,
 )
-from domain.task.task_exceptions import TaskNotFoundError
 
 
 def raise_http_from_error(e: Exception) -> None:
@@ -62,7 +61,6 @@ def raise_http_from_error(e: Exception) -> None:
         e,
         (
             UserNotFoundError,
-            TaskNotFoundError,
             ServiceNotFoundError,
             ProviderServiceNotFoundError,
             ServiceRequestNotFoundError,

@@ -5,7 +5,6 @@ from fastapi import FastAPI
 
 from infrastructure.api.database import SessionLocal, create_tables
 from infrastructure.api.routers import (
-    task_routers,
     user_routers,
     provider_service_routers,
     service_request_routers,
@@ -45,7 +44,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(user_routers.router)
-# app.include_router(task_routers.router)
 app.include_router(service_routers.router)
 app.include_router(provider_service_routers.router)
 

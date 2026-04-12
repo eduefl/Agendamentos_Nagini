@@ -7,7 +7,6 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from domain.task.task_entity import Task
 from domain.user.user_entity import User
 from domain.service.service_entity import Service
 from domain.service.provider_service_entity import ProviderService
@@ -39,20 +38,6 @@ def make_user():
     return _make_user
 
 
-@pytest.fixture
-def make_task():
-    def _make_task(**overrides):
-        data = {
-            "id": uuid4(),
-            "user_id": uuid4(),
-            "title": "Task 1",
-            "description": "Description for Task",
-            "completed": False,
-        }
-        data.update(overrides)
-        return Task(**data)
-
-    return _make_task
 
 
 @pytest.fixture
