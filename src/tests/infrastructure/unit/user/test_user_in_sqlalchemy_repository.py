@@ -439,3 +439,52 @@ class TestUserSqlalchemyRepository:
         result = repo.add_role_to_user(user_id=user.id, role_name="prestador")
         assert result is None
         roles = repo.list_user_roles(user.id)
+
+    def test_add_role_to_user_handles_integrity_error_on_commit(
+        self, make_user, tst_db_session, seed_roles
+    ):
+        from unittest.mock import patch
+        from sqlalchemy.exc import IntegrityError
+        from infrastructure.user.sqlalchemy.user_model import UserModel
+
+        repo = userRepository(session=tst_db_session)
+        user = make_user(roles={"cliente"})
+
+        row = UserModel(
+            id=user.id,
+            name=user.name,
+            email=user.email,
+            hashed_password=user.hashed_password,
+            is_active=user.is_active,
+        )
+        row.roles.append(repo._get_role_by_name("cliente"))
+        tst_db_session.add(row)
+        tst_db_session.commit()
+
+        # Simulate a race condition where commit raises IntegrityError
+        with patch.object(tst_db_session, "commit", side_effect=IntegrityError(None, None, None)):
+            result = repo.add_role_to_user(user_id=user.id, role_name="prestador")
+        # Should not raise; returns None after rollback
+        assert result is None
+
+
+class TestSeedRoles:
+    def test_seed_roles_is_idempotent(self, tst_db_session, seed_roles):
+        from infrastructure.user.sqlalchemy.seed_roles import seed_roles as do_seed
+        from infrastructure.user.sqlalchemy.user_model import RoleModel
+        session = tst_db_session
+        # First seed already ran via fixture; run again to test idempotency
+        # (roles already exist, so the loop skips them; commit succeeds)
+        do_seed(session)
+        roles = session.query(RoleModel).all()
+        assert len(roles) >= 2
+
+    def test_seed_roles_handles_integrity_error(self, tst_db_session, seed_roles):
+        from unittest.mock import patch, MagicMock
+        from sqlalchemy.exc import IntegrityError
+        from infrastructure.user.sqlalchemy.seed_roles import seed_roles as do_seed
+        session = tst_db_session
+        # Simulate a race condition where commit raises IntegrityError
+        with patch.object(session, "commit", side_effect=IntegrityError(None, None, None)):
+            # Should not raise; IntegrityError is caught and rolled back
+            do_seed(session)

@@ -265,6 +265,29 @@ class TestConfirmProviderArrivalAndStartServiceUseCase:
                 )
             )
 
+    def test_fails_if_conditional_update_returns_none_and_status_arrived_but_arrived_at_set(self):
+        # Race condition: status is still ARRIVED and provider_arrived_at is set
+        # but the conditional update still missed. This should raise ServiceRequestNotArrivedError.
+        client_id = uuid4()
+        use_case, sr_repo = _make_use_case()
+
+        mock_sr = _make_arrived_sr(client_id=client_id)
+        sr_repo.confirm_provider_arrival_and_start_service_if_arrived.return_value = None
+
+        reread = MagicMock()
+        reread.client_id = client_id
+        reread.status = ServiceRequestStatus.ARRIVED.value
+        reread.provider_arrived_at = datetime.utcnow() - timedelta(minutes=5)
+        sr_repo.find_by_id.side_effect = [mock_sr, reread]
+
+        with pytest.raises(ServiceRequestNotArrivedError):
+            use_case.execute(
+                ConfirmProviderArrivalAndStartServiceInputDTO(
+                    authenticated_user_id=client_id,
+                    service_request_id=mock_sr.id,
+                )
+            )
+
     def test_sets_same_now_for_confirmation_and_service_start(self):
         client_id = uuid4()
         use_case, sr_repo = _make_use_case()

@@ -8,6 +8,7 @@ import pytest
 from domain.service_request.service_request_entity import ServiceRequestStatus
 from domain.service_request.service_request_exceptions import (
     ProviderDoesNotServeThisRequestError,
+    ServiceRequestAddressEmptyError,
     ServiceRequestNotFoundError,
     ServiceRequestUnavailableError,
 )
@@ -186,6 +187,26 @@ class TestConfirmServiceRequestUseCase:
             use_case.execute(input_dto)
 
         sr_repo.confirm_if_available.assert_not_called()
+
+    def test_fails_if_service_request_has_no_address(self):
+        use_case, sr_repo, ps_repo, travel = _make_use_case()
+
+        mock_sr = _make_available_service_request()
+        mock_sr.address = ""
+        sr_repo.find_by_id.return_value = mock_sr
+
+        mock_ps = MagicMock()
+        mock_ps.price = Decimal("80.00")
+        ps_repo.find_active_by_provider_and_service.return_value = mock_ps
+
+        input_dto = ConfirmServiceRequestInputDTO(
+            service_request_id=mock_sr.id,
+            provider_id=uuid4(),
+            departure_address="Rua A, 1",
+        )
+
+        with pytest.raises(ServiceRequestAddressEmptyError):
+            use_case.execute(input_dto)
 
     def test_fails_if_another_provider_already_accepted(self):
         use_case, sr_repo, ps_repo, travel = _make_use_case()

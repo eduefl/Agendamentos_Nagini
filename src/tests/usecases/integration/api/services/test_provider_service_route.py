@@ -533,3 +533,37 @@ class TestCreateProviderServiceRoute:
             list_items[0]["service_name"] == "service a"
         )  # Check the service name always lowercase
         assert list_items[0]["price"] == 1000  # Check the service price
+
+    def test_list_provider_services_returns_500_on_unexpected_error(
+        self,
+        client,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        from unittest.mock import patch
+        session = tst_db_session
+        from infrastructure.user.sqlalchemy.user_repository import userRepository
+        user_repository = userRepository(session=session)
+
+        provider = make_user(
+            id=uuid4(),
+            email=f"provider.err.{uuid4().hex}@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"prestador"},
+        )
+        user_repository.add_user(provider)
+        session.commit()
+
+        headers = self._make_auth_header(provider)
+
+        with patch(
+            "infrastructure.api.routers.provider_service_routers.make_list_provider_services_usecase",
+            side_effect=RuntimeError("unexpected error"),
+        ):
+            response = client.get("/provider-services/", headers=headers)
+
+        assert response.status_code == 500

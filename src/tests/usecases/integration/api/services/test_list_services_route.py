@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 from domain.security.token_service_dto import CreateAccessTokenDTO
@@ -371,3 +372,36 @@ class TestListServicesRoute:
         body = response.json()
         assert len(body) == 1
         assert body[0]["name"] == "Serviço de Jardinagem"
+
+
+    def test_list_services_returns_500_when_usecase_raises_unexpected_error(
+        self,
+        client,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        user_repository = userRepository(session=session)
+
+        user = make_user(
+            id=uuid4(),
+            email="client.error@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        user_repository.add_user(user)
+        session.commit()
+
+        headers = self._make_auth_header(user)
+
+        with patch(
+            "infrastructure.api.routers.service_routers.make_list_services_usecase",
+            side_effect=RuntimeError("unexpected error"),
+        ):
+            response = client.get("/services/", headers=headers)
+
+        assert response.status_code == 500

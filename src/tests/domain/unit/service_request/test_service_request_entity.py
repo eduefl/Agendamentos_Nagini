@@ -560,6 +560,17 @@ class TestServiceRequest:
                 payment_amount=Decimal("-10.00"),
             ).validate()
 
+    def test_service_request_validation_should_raise_error_for_invalidpayment_last_status(self):
+        with pytest.raises(ValueError, match="payment_last_status must be a string or None."):
+            ServiceRequest(
+                id=uuid4(),
+                client_id=uuid4(),
+                service_id=uuid4(),
+                desired_datetime=datetime.utcnow() + timedelta(days=1),
+                payment_amount=Decimal("10.00"),
+                payment_last_status = Decimal("10.00"),
+            ).validate()
+
     def test_with_timezone_aware_desired_datetime_uses_local_now(self):
         tz = timezone.utc
         desired = datetime.now(tz=tz) + timedelta(days=1)
@@ -770,6 +781,25 @@ class TestInTransitStateValidation:
         with pytest.raises(ValueError, match="IN_TRANSIT service request must have service_price"):
             ServiceRequest(**kw)
 
+    def test_missing_travel_price(self):
+        kw = _in_transit_kwargs()
+        kw["travel_price"] = None
+        kw["total_price"] = None
+        with pytest.raises(ValueError, match="IN_TRANSIT service request must have travel_price"):
+            ServiceRequest(**kw)
+
+    def test_missing_total_price(self):
+        kw = _in_transit_kwargs()
+        kw["total_price"] = None
+        with pytest.raises(ValueError, match="IN_TRANSIT service request must have total_price"):
+            ServiceRequest(**kw)
+
+    def test_missing_accepted_at(self):
+        kw = _in_transit_kwargs()
+        kw["accepted_at"] = None
+        with pytest.raises(ValueError, match="IN_TRANSIT service request must have accepted_at"):
+            ServiceRequest(**kw)
+
     def test_missing_travel_started_at(self):
         kw = _in_transit_kwargs()
         kw["travel_started_at"] = None
@@ -830,6 +860,49 @@ class TestArrivedStateValidation:
         with pytest.raises(ValueError, match="ARRIVED service request must have service_price"):
             ServiceRequest(**kw)
 
+    def test_missing_travel_price(self):
+        kw = _arrived_kwargs()
+        kw["travel_price"] = None
+        kw["total_price"] = None
+        with pytest.raises(ValueError, match="ARRIVED service request must have travel_price"):
+            ServiceRequest(**kw)
+
+    def test_missing_total_price(self):
+        kw = _arrived_kwargs()
+        kw["total_price"] = None
+        with pytest.raises(ValueError, match="ARRIVED service request must have total_price"):
+            ServiceRequest(**kw)
+
+    def test_missing_accepted_at(self):
+        kw = _arrived_kwargs()
+        kw["accepted_at"] = None
+        with pytest.raises(ValueError, match="ARRIVED service request must have accepted_at"):
+            ServiceRequest(**kw)
+
+    def test_missing_travel_started_at(self):
+        kw = _arrived_kwargs()
+        kw["travel_started_at"] = None
+        with pytest.raises(ValueError, match="ARRIVED service request must have travel_started_at"):
+            ServiceRequest(**kw)
+
+    def test_missing_route_calculated_at(self):
+        kw = _arrived_kwargs()
+        kw["route_calculated_at"] = None
+        with pytest.raises(ValueError, match="ARRIVED service request must have route_calculated_at"):
+            ServiceRequest(**kw)
+
+    def test_missing_estimated_arrival_at(self):
+        kw = _arrived_kwargs()
+        kw["estimated_arrival_at"] = None
+        with pytest.raises(ValueError, match="ARRIVED service request must have estimated_arrival_at"):
+            ServiceRequest(**kw)
+
+    def test_missing_travel_duration_minutes(self):
+        kw = _arrived_kwargs()
+        kw["travel_duration_minutes"] = None
+        with pytest.raises(ValueError, match="ARRIVED service request must have travel_duration_minutes"):
+            ServiceRequest(**kw)
+
     def test_missing_provider_arrived_at(self):
         kw = _arrived_kwargs()
         kw["provider_arrived_at"] = None
@@ -870,6 +943,49 @@ class TestInProgressStateValidation:
         kw["travel_price"] = None
         kw["total_price"] = None
         with pytest.raises(ValueError, match="IN_PROGRESS service request must have service_price"):
+            ServiceRequest(**kw)
+
+    def test_missing_travel_price(self):
+        kw = _in_progress_kwargs()
+        kw["travel_price"] = None
+        kw["total_price"] = None
+        with pytest.raises(ValueError, match="IN_PROGRESS service request must have travel_price"):
+            ServiceRequest(**kw)
+
+    def test_missing_total_price(self):
+        kw = _in_progress_kwargs()
+        kw["total_price"] = None
+        with pytest.raises(ValueError, match="IN_PROGRESS service request must have total_price"):
+            ServiceRequest(**kw)
+
+    def test_missing_accepted_at(self):
+        kw = _in_progress_kwargs()
+        kw["accepted_at"] = None
+        with pytest.raises(ValueError, match="IN_PROGRESS service request must have accepted_at"):
+            ServiceRequest(**kw)
+
+    def test_missing_travel_started_at(self):
+        kw = _in_progress_kwargs()
+        kw["travel_started_at"] = None
+        with pytest.raises(ValueError, match="IN_PROGRESS service request must have travel_started_at"):
+            ServiceRequest(**kw)
+
+    def test_missing_route_calculated_at(self):
+        kw = _in_progress_kwargs()
+        kw["route_calculated_at"] = None
+        with pytest.raises(ValueError, match="IN_PROGRESS service request must have route_calculated_at"):
+            ServiceRequest(**kw)
+
+    def test_missing_estimated_arrival_at(self):
+        kw = _in_progress_kwargs()
+        kw["estimated_arrival_at"] = None
+        with pytest.raises(ValueError, match="IN_PROGRESS service request must have estimated_arrival_at"):
+            ServiceRequest(**kw)
+
+    def test_missing_travel_duration_minutes(self):
+        kw = _in_progress_kwargs()
+        kw["travel_duration_minutes"] = None
+        with pytest.raises(ValueError, match="IN_PROGRESS service request must have travel_duration_minutes"):
             ServiceRequest(**kw)
 
     def test_missing_provider_arrived_at(self):

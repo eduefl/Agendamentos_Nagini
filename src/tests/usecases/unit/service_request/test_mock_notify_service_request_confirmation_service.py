@@ -236,3 +236,19 @@ class TestNotifyServiceRequestConfirmationService:
 
         with pytest.raises(ServiceNotFoundError):
             svc.notify(service_request)
+
+class TestFakeEmailSenderSendServiceRequestNotificationEmail:
+    def test_send_service_request_notification_email_appends_to_sent_emails(self):
+        from datetime import datetime
+        sender = FakeEmailSender()
+        now = datetime.utcnow()
+        sender.send_service_request_notification_email(
+            to_email="p@example.com",
+            provider_name="Prestador",
+            service_name="Manicure",
+            desired_datetime=now,
+            address="Rua X, 1",
+            expires_at=now,
+        )
+        assert len(sender.sent_emails) == 1
+        assert sender.sent_emails[0][0] == "p@example.com"

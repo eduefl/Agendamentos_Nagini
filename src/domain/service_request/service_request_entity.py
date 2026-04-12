@@ -277,6 +277,10 @@ class ServiceRequest:
         if self.payment_amount is not None and self.payment_amount <= Decimal("0"):
             raise ValueError("payment_amount must be greater than zero.")
 
+        if self.payment_last_status is not None and not isinstance(
+            self.payment_last_status, str):
+            raise ValueError("payment_last_status must be a string or None.")
+
         if self.payment_last_status is not None:
             valid_snapshot_values = {item.value for item in PaymentStatusSnapshot}
             if self.payment_last_status not in valid_snapshot_values:
@@ -284,10 +288,6 @@ class ServiceRequest:
                     f"payment_last_status must be one of {sorted(valid_snapshot_values)} or None."
                 )
 
-        if self.payment_last_status is not None and not isinstance(
-            self.payment_last_status, str
-        ):
-            raise ValueError("payment_last_status must be a string or None.")
 
         if self.payment_provider is not None and not isinstance(
             self.payment_provider, str

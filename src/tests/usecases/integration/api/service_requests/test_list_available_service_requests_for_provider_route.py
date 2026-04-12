@@ -210,3 +210,36 @@ class TestListAvailableServiceRequestsForProviderRoute:
         assert item["desired_datetime"] == "2026-04-10T14:00:00"
         assert item["created_at"] == "2026-04-04T10:00:00"
         assert item["expires_at"] is not None
+    def test_list_available_service_requests_returns_500_on_unexpected_error(
+        self,
+        client,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        from unittest.mock import patch
+        session = tst_db_session
+        from infrastructure.user.sqlalchemy.user_repository import userRepository
+        user_repository = userRepository(session=session)
+
+        provider = make_user(
+            id=uuid4(),
+            email=f"provider.err.{uuid4().hex}@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"prestador"},
+        )
+        user_repository.add_user(provider)
+        session.commit()
+
+        headers = self._make_auth_header(provider)
+
+        with patch(
+            "infrastructure.api.routers.provider_service_request_routers.make_list_available_service_requests_for_provider_usecase",
+            side_effect=RuntimeError("unexpected error"),
+        ):
+            response = client.get("/provider-service-requests/available", headers=headers)
+
+        assert response.status_code == 500

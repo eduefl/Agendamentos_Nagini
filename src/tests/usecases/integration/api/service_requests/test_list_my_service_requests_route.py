@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
+from unittest.mock import patch
 from uuid import uuid4
 
 from domain.security.token_service_dto import CreateAccessTokenDTO
@@ -437,3 +438,65 @@ class TestListMyServiceRequestsRoute:
 
         assert response.status_code == 200
         assert response.json() == []
+
+    def test_list_my_service_requests_forbidden_for_inactive_cliente(
+        self,
+        client,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        user_repository = userRepository(session=session)
+
+        inactive_client = make_user(
+            id=uuid4(),
+            name="Cliente Inativo",
+            email="inactive.client@example.com",
+            hashed_password="hashed_password",
+            is_active=False,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        user_repository.add_user(inactive_client)
+        session.commit()
+
+        headers = self._make_auth_header(inactive_client)
+
+        response = client.get("/user-service-requests/me", headers=headers)
+
+        assert response.status_code == 403
+
+    def test_list_my_service_requests_returns_500_on_unexpected_error(
+        self,
+        client,
+        tst_db_session,
+        make_user,
+        seed_roles,
+    ):
+        session = tst_db_session
+        user_repository = userRepository(session=session)
+
+        client_user = make_user(
+            id=uuid4(),
+            name="Cliente Erro",
+            email=f"cliente.erro.{uuid4().hex}@example.com",
+            hashed_password="hashed_password",
+            is_active=True,
+            activation_code=None,
+            activation_code_expires_at=None,
+            roles={"cliente"},
+        )
+        user_repository.add_user(client_user)
+        session.commit()
+
+        headers = self._make_auth_header(client_user)
+
+        with patch(
+            "infrastructure.api.routers.service_request_routers.make_list_my_service_requests_usecase",
+            side_effect=RuntimeError("unexpected error"),
+        ):
+            response = client.get("/user-service-requests/me", headers=headers)
+
+        assert response.status_code == 500

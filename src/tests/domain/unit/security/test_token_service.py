@@ -154,3 +154,18 @@ class TestTokenService:
 
         with pytest.raises(InvalidTokenError):
             token_service.decode_token(token)
+
+    def test_decode_token_missing_roles_defaults_to_empty_list(self, token_service):
+        user_id = str(uuid4())
+        token = jwt.encode(
+            {
+                "sub": user_id,
+                "email": "user@example.com",
+                "exp": int((datetime.now(timezone.utc) + timedelta(minutes=5)).timestamp()),
+            },
+            token_service._secret_key,
+            algorithm=token_service._algorithm,
+        )
+
+        payload = token_service.decode_token(token)
+        assert payload.roles == []

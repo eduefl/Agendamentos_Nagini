@@ -416,3 +416,75 @@ class TestPaymentAttemptPersistence:
         # Try mark_processing again (already PROCESSING)
         result = repo.mark_processing(created.id)
         assert result is None
+
+
+
+    def test_find_latest_by_service_request_id_returns_none_when_no_attempts(
+        self, tst_db_session, make_user, make_service, seed_roles
+    ):
+        sr = self._setup_service_request(tst_db_session, make_user, make_service, "9")
+        repo = PaymentAttemptRepository(session=tst_db_session)
+        result = repo.find_latest_by_service_request_id(sr.id)
+        assert result is None
+
+
+    def test_mark_approved_returns_none_when_not_processing(
+        self, tst_db_session, make_user, make_service, seed_roles
+    ):
+        sr = self._setup_service_request(tst_db_session, make_user, make_service, "10")
+        repo = PaymentAttemptRepository(session=tst_db_session)
+        attempt = self._make_attempt(sr.id)
+        created = repo.create(attempt)
+        # Attempt is in REQUESTED state, mark_approved requires PROCESSING
+        result = repo.mark_approved(created.id)
+        assert result is None
+
+
+    def test_mark_refused_returns_none_when_not_processing(
+        self, tst_db_session, make_user, make_service, seed_roles
+    ):
+        sr = self._setup_service_request(tst_db_session, make_user, make_service, "11")
+        repo = PaymentAttemptRepository(session=tst_db_session)
+        attempt = self._make_attempt(sr.id)
+        created = repo.create(attempt)
+        # Attempt is in REQUESTED state, mark_refused requires PROCESSING
+        result = repo.mark_refused(created.id)
+        assert result is None
+
+
+    def test_record_gateway_reference_returns_none_when_attempt_not_found(
+        self, tst_db_session, make_user, make_service, seed_roles
+    ):
+        _add_user(
+            tst_db_session,
+            make_user,
+            name="GRefTest",
+            email=f"gref_{uuid4().hex}@example.com",
+            roles={"cliente"},
+        )
+        repo = PaymentAttemptRepository(session=tst_db_session)
+        result = repo.record_gateway_reference(
+            attempt_id=uuid4(),
+            provider="test_provider",
+            external_reference="ext-ref-nonexistent",
+        )
+        assert result is None
+
+
+    def test_record_gateway_reference_updates_attempt(
+        self, tst_db_session, make_user, make_service, seed_roles
+    ):
+        sr = self._setup_service_request(tst_db_session, make_user, make_service, "12")
+        repo = PaymentAttemptRepository(session=tst_db_session)
+        attempt = self._make_attempt(sr.id)
+        created = repo.create(attempt)
+        updated = repo.record_gateway_reference(
+            attempt_id=created.id,
+            provider="test_gateway",
+            external_reference="ext-ref-12345",
+            provider_message="success",
+        )
+        assert updated is not None
+        assert updated.provider == "test_gateway"
+        assert updated.external_reference == "ext-ref-12345"
+        assert updated.provider_message == "success"

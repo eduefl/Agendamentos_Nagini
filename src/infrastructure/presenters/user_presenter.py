@@ -13,8 +13,8 @@ from usecases.user.update_user.update_user_dto import UpdateUserOutputDTO
 
 def _pydantic_to_dict(obj: Any) -> dict:
     # Pydantic v2: model_dump; v1: dict
-    if hasattr(obj, "model_dump"):
-        return obj.model_dump()
+    # if hasattr(obj, "model_dump"):
+    #     return obj.model_dump()
     if hasattr(obj, "dict"):
         return obj.dict()
     # fallback

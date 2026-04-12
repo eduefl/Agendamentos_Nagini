@@ -293,6 +293,30 @@ class TestMockCreateProviderServiceUseCase(unittest.TestCase):
         assert output.service_name == existing_service.name
         assert isinstance(output, CreateProviderServiceOutputDTO)
 
+    def test_empty_string_service_id_is_normalized_to_none(self):
+        # When service_id is an empty string, the DTO validator normalizes it to None.
+        # Providing a name ensures the DTO validation passes (name XOR service_id).
+        input_dto = CreateProviderServiceInputDTO(
+            name="My Service",
+            service_id="",
+            description="desc",
+            provider_id=uuid4(),
+            price=Decimal("50.00"),
+        )
+        assert input_dto.service_id is None
+
+    def test_empty_string_name_is_normalized_to_none(self):
+        # When name is an empty string, the DTO validator normalizes it to None.
+        # Providing a valid service_id ensures the DTO validation passes.
+        valid_service_id = uuid4()
+        input_dto = CreateProviderServiceInputDTO(
+            name="",
+            service_id=str(valid_service_id),
+            description="desc",
+            provider_id=uuid4(),
+            price=Decimal("50.00"),
+        )
+        assert input_dto.name is None
 
 if __name__ == "__main__":
     unittest.main()
